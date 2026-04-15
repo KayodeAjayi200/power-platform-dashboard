@@ -48,6 +48,11 @@ Read the relevant skill file before writing any code or formulas.
   ```powershell
   [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding $true))
   ```
+- **Comment everything for non-technical readers** — every function, section, and non-obvious line must have a plain-English comment explaining *what* it does and *why*. Assume the reader has never written code. Example:
+  ```powershell
+  # Ask Power Platform for a list of all environments the user has access to
+  $envs = pac env list --output json | ConvertFrom-Json
+  ```
 - **Script-scope variables for timers** — WinForms timer variables in click handlers must be stored as `$Script:TimerName` (not local `$timer`) to prevent PowerShell garbage-collecting them
 - **No `pac solution list-component`** — that command does not exist. Use export+zip+solution.xml parsing instead
 - **Color palette** — `$Script:C` hashtable; valid keys listed above; no "Yellow"
