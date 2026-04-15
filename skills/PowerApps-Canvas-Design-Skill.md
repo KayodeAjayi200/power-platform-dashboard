@@ -18,6 +18,8 @@ metadata:
 # Power Apps Canvas Apps — UI/UX Design Best Practices
 
 > Use this skill when a user asks about improving their app's look, creating better layouts,
+
+> **⚠️ Commenting rule:** Every formula and property value you write must have a plain-English comment above it explaining what it does. Assume the reader has never seen Power Fx before. Use `//` for comments.
 > making an app responsive, designing galleries, adding a nav menu, or anything visual/UX.
 
 ---

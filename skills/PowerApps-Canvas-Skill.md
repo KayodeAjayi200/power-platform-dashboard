@@ -6,6 +6,43 @@
 
 ---
 
+## ⚠️ Commenting Rule — Always follow this
+
+**Every formula you write must be commented in plain English.** Assume the person reading the code has never written a formula or seen code before. Comments should explain *what* the formula does and *why*, not just repeat the code.
+
+Power Fx uses `//` for single-line comments and `/* */` for multi-line. Use them everywhere — on buttons, galleries, labels, screens, collections, everything.
+
+**Examples of good commenting:**
+
+```powerfx
+// When the user clicks Search, filter the Orders list to only show rows
+// where the Title column contains whatever the user typed in the search box
+Filter(Orders, SearchText in Title)
+```
+
+```powerfx
+// Show this button only if the current user is an admin.
+// User().Email gets the logged-in person's email address.
+User().Email in AdminEmails
+```
+
+```powerfx
+// Loop through every item in the PendingOrders list and save each one
+// to the Orders table in Dataverse, then clear the pending list.
+ForAll(PendingOrders, Patch(Orders, Defaults(Orders), ThisRecord));
+Clear(PendingOrders)
+```
+
+```powerfx
+// When this screen loads, get the 10 most recently modified records
+// from the Expenses table and store them in a local variable called RecentExpenses
+Set(RecentExpenses, FirstN(Sort(Expenses, Modified, SortOrder.Descending), 10))
+```
+
+> ✅ A non-technical reader should be able to read your comments and understand exactly what the app is doing at each step — without understanding Power Fx syntax.
+
+---
+
 ## Quick orientation
 
 | Concept | What it is |
