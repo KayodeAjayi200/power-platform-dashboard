@@ -10,5 +10,6 @@ Rules:
 - Tell me what you are doing at each step
 - Pause and ask me ONLY when a browser login window is needed (for Power Platform, GitHub, or Azure)
 - After everything is installed and configured, launch the dashboard for me
+- If you are running in the GitHub Copilot desktop app, also run Step 9 to install the agent skills
 
 I am on Windows 11. Let's go.

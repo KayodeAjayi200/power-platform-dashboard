@@ -4,11 +4,12 @@
 
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-blue?logo=windows)
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.4%2B-blue?logo=powershell)
+![Power Platform](https://img.shields.io/badge/Power%20Platform-742774?logo=microsoftpowerplatform&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## ⚡ Setup — 2 steps only
+## ⚡ Setup — 2 steps
 
 ### Step 1 — Clone this repo
 
@@ -22,7 +23,7 @@ git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Rep
 
 ### Step 2 — Paste this into your AI agent
 
-Open [`SETUP_PROMPT.txt`](./SETUP_PROMPT.txt) from the cloned folder and paste its full contents into any AI agent chat. Or copy from here:
+Open [`SETUP_PROMPT.txt`](./SETUP_PROMPT.txt) from the cloned folder and paste its contents into any AI agent (Copilot, Claude, ChatGPT, Cursor, etc.):
 
 ```
 I've cloned the Power Platform Dashboard repository to "C:\Repositories\Powerapps Stuff".
@@ -41,80 +42,103 @@ Rules:
 I am on Windows 11. Let's go.
 ```
 
-**Done.** Your AI installs all tools, configures MCP servers, handles browser-based authentication, and launches the dashboard. No command line needed.
+**Done.** Your AI installs all tools, configures MCP servers, handles browser authentication, and launches the dashboard. No command line needed.
 
 ---
 
 ### Works with any AI agent
 
-| AI Agent | How |
+| Agent | How |
 |---|---|
-| **GitHub Copilot** (VS Code / github.com) | Copilot Chat → paste prompt |
-| **Claude** (claude.ai or Claude Desktop) | New conversation → paste prompt |
+| **GitHub Copilot** (VS Code / github.com / Copilot app) | Copilot Chat → paste prompt |
+| **Claude** (claude.ai / Claude Desktop) | New conversation → paste prompt |
 | **ChatGPT / OpenAI Codex** | New conversation → upload `SETUP_PROMPT.txt` → *"follow these"* |
 | **Cursor / Windsurf / Cline** | Agent panel → paste prompt |
 | **Any agent with PowerShell tool use** | Paste prompt — it's agent-agnostic |
 
 ---
 
-## What is this?
+## What it does
 
-A **WinForms desktop dashboard** that wraps the entire Power Platform developer toolchain into a point-and-click interface. Designed for teams where some members are not comfortable with the command line.
+A **WinForms desktop dashboard** wrapping the entire Power Platform developer toolchain into a point-and-click interface. Built for teams where not everyone is comfortable with the command line.
 
-| What you can do | How |
+| Feature | How it works |
 |---|---|
-| Manage Power Platform environments | Environment switcher, always visible at the top |
-| Export & unpack solutions | One click — zipped & YAML side-by-side |
+| Manage environments | Environment switcher always visible at the top |
+| Export & unpack solutions | One click — zip and YAML side-by-side |
 | Sync solutions to GitHub with AI summaries | Select repo → click sync → AI explains what changed |
-| Deploy between environments (including cross-tenant) | Visual source→target picker with managed/unmanaged toggle |
-| Create disposable environments for testing | Name it, pick a region, deploy a solution — it creates everything |
+| Deploy between environments | Visual source→target picker with managed/unmanaged toggle |
+| Create disposable test environments | Name it, pick a region, deploy a solution — fully automated |
 | Rename canvas app controls with AI | Unpack `.msapp` → AI suggests camelCase names → repack |
 | Run ALM pipelines (Azure DevOps & GitHub Actions) | Click-to-trigger with live log streaming |
-| Query Dataverse, SharePoint, GitHub via AI (MCP) | Built-in AI Assistant tab with 9 connected tools |
-| Code review Power Platform changes | Diff view with AI-generated review comments |
+| Query Dataverse, SharePoint, GitHub via AI | MCP-powered AI assistant with 9 connected live tools |
 
 ---
 
-## 🤝 Sharing with your team
+## 🖥 Dashboard tabs
 
-To give a colleague access:
-
-1. Send them the link: **https://github.com/KayodeAjayi200/power-platform-dashboard**
-2. Tell them: *"Clone the repo then paste `SETUP_PROMPT.txt` into your AI agent"*
-3. They authenticate their own accounts via browser pop-ups — the AI handles the rest
-
-No one needs to touch the command line.
+| Tab | What it does |
+|---|---|
+| 🌐 **Environments** | List all environments; switch with top dropdown |
+| 📦 **Solutions** | Export, import, sync to GitHub with AI diff summary |
+| 🚀 **Deploy** | Deploy solutions between environments (cross-tenant supported) |
+| 🔧 **ALM Tools** | Disposable environments, canvas AI rename, ALM pipelines |
+| 🎨 **Canvas** | Canvas app operations via Canvas MCP |
+| 🤖 **Copilot Studio** | Manage Copilot Studio agents |
+| 📊 **Dataverse** | Query and edit Dataverse tables |
+| 🔗 **SharePoint** | SharePoint site and list management |
+| 📋 **Power Automate** | Flow listing and management |
+| ⚙️ **Settings** | GitHub PAT, Dataverse URL, ADO config, AI provider |
+| 📝 **Output** | Live log of all operations |
 
 ---
 
-## 🔧 Manual setup (developers only)
+## 🧠 AI Agent Skills
+
+This repo ships with **agent skill files** — structured reference docs that tell AI agents exactly what to know for each domain. They work with any agent that supports skill/context files.
+
+### Built-in skills (in `skills/`)
+
+| Skill | Description |
+|---|---|
+| [`skills/PowerApps-Canvas-Skill.md`](./skills/PowerApps-Canvas-Skill.md) | All ~60 canvas controls, 150+ Power Fx functions, components, common patterns |
+
+### Installing skills into the Copilot app
+
+If you use the **GitHub Copilot desktop app**, you can add these as personal agent skills so they appear in your Skills panel:
 
 ```powershell
-git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
-cd "C:\Repositories\Powerapps Stuff"
-pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
-.\Launch-Dashboard.ps1
+# Run this from the repo root after cloning:
+$skillsTarget = "$env:USERPROFILE\.agents\skills"
+
+# Power Apps Canvas skill
+$dest = "$skillsTarget\powerapps-canvas"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item "skills\PowerApps-Canvas-Skill.md" "$dest\SKILL.md" -Force
+
+# Power Platform Dashboard setup skill
+$dest = "$skillsTarget\power-platform-dashboard"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item "AGENT_SKILL.md" "$dest\SKILL.md" -Force
+
+Write-Host "✅ Skills installed — refresh the Skills panel in the Copilot app"
 ```
+
+After running, open the Skills panel → click 🔄 Refresh → your skills will appear as **personal-agents** entries.
+
+### For VS Code / GitHub Copilot coding agent
+
+The repo includes [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) which GitHub Copilot reads automatically in every session. It routes Copilot to the correct skill file for each topic.
 
 ---
 
-| Tool | Purpose |
-|---|---|
-| **PAC CLI** | Export, import, and manage Power Platform solutions |
-| **m365 CLI** | SharePoint, Teams, Entra ID management |
-| **PnP.PowerShell** | Deep SharePoint operations |
-| **Azure CLI** | Azure resources and DevOps auth |
-| **GitHub CLI** | Repos, pull requests, GitHub Actions |
-| **gh-copilot extension** | AI in the terminal |
+## 🔌 MCP servers (AI gets live access to your data)
 
-### MCP servers (give your AI real-time access to your data)
-
-| Server | What it lets your AI do |
+| Server | What your AI can do |
 |---|---|
 | `dataverse` | Query and update Dataverse tables directly |
 | `canvas` | Read canvas app structure and controls |
 | `copilot-studio` | Manage Copilot Studio agents |
-| `sharepoint` | Browse and edit SharePoint sites |
 | `github` | Read repos, issues, PRs |
 | `azure-devops` | Trigger pipelines, view work items |
 | `filesystem` | Read local files |
@@ -123,37 +147,19 @@ pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
 
 ---
 
-## 🖥 Dashboard tabs
-
-| Tab | What it does |
-|---|---|
-| 🌐 **Environments** | See all environments; switch with the top dropdown |
-| 📦 **Solutions** | List, export, import; GitHub sync with AI diff summary |
-| 🗂 **SharePoint** | Site/list/page management |
-| 🔧 **Azure DevOps** | Pipelines and work items |
-| 🚀 **ALM Pipelines** | Promote Dev → Test → Prod |
-| 🔌 **MCP Servers** | See and refresh AI tool connections |
-| 📤 **Deploy** | Cross-environment and cross-tenant deployment |
-| 🔍 **Code Review** | Diff + AI review comments |
-| 🧪 **ALM Tools** | Canvas AI rename/comment; disposable env creation |
-| ⚙️ **Settings** | Configure tokens, URLs, AI provider (no JSON editing) |
-| 🤖 **AI Assistant** | Chat with AI using Dataverse/SharePoint/GitHub context |
-
----
-
 ## 📦 Credentials you'll need
 
-The AI agent will ask you for these during setup — you don't need to type any commands, just supply the values when prompted:
+Your AI agent pauses and asks for these during setup — just paste the values when prompted:
 
 | Credential | Where to find it |
 |---|---|
-| **GitHub Personal Access Token** | github.com → Settings → Developer settings → Fine-grained tokens |
-| **Dataverse connection URL** | Power Automate → My connections → Common Data Service → `...` → Details |
-| **Azure DevOps org URL** | `https://dev.azure.com/YOUR_ORG` |
+| **GitHub Personal Access Token** | github.com → Settings → Developer settings → Fine-grained tokens → New token (scopes: Contents R/W, Pull requests R/W, Issues R/W, Workflows R/W) |
+| **Dataverse connection URL** | Power Automate → My connections → Common Data Service → `···` → Details → copy the full URL (includes `?apiName=...`) |
+| **Azure DevOps org URL** | `https://dev.azure.com/YOUR_ORG_NAME` |
 | **Copilot Studio MCP URL** *(optional)* | Copilot Studio → Settings → Channels → MCP Client |
-| **AI API key** *(optional)* | Azure OpenAI or Anthropic — leave blank to use GitHub Copilot (free) |
+| **AI API key** *(optional)* | Azure OpenAI or Anthropic — leave blank to use GitHub Copilot for free |
 
-> **Security note:** Credentials are stored only in `~/.copilot/pp-dashboard-settings.json` and `~/.copilot/mcp-config.json` on your local machine. They are never committed to this repository.
+> 🔒 Credentials are stored only in `~/.copilot/` on your local machine. They are **never** committed to this repo.
 
 ---
 
@@ -161,51 +167,39 @@ The AI agent will ask you for these during setup — you don't need to type any 
 
 ```
 power-platform-dashboard/
-├── SETUP_PROMPT.txt              ← ★ Paste this into any AI to set up everything
-├── AGENT_SKILL.md                ← Step-by-step instructions the AI follows
-├── Launch-Dashboard.ps1          ← Double-click to start (no terminal needed)
-├── README.md
-├── .gitignore
+├── SETUP_PROMPT.txt                  ← ★ Paste into any AI to set up everything
+├── AGENT_SKILL.md                    ← Full setup instructions the AI follows
+├── Launch-Dashboard.ps1              ← Double-click launcher (no terminal needed)
+├── TOOLS-SETUP.md                    ← Manual setup reference for developers
+├── .mcp.json                         ← MCP server config (used by VS Code Copilot)
+├── .github/
+│   ├── copilot-instructions.md       ← Copilot reads this automatically every session
+│   └── workflows/
+│       └── copilot-setup-steps.yml   ← Pre-installs all tools in Copilot cloud agent
+├── skills/
+│   └── PowerApps-Canvas-Skill.md    ← Power Fx + controls reference (agent skill)
 ├── scripts/
-│   ├── PowerPlatformDashboard.ps1   ← Main WinForms app (~2500 lines)
-│   ├── Install-PPDashboard.ps1      ← Full toolchain installer
+│   ├── PowerPlatformDashboard.ps1   ← Main WinForms dashboard (~2800 lines)
+│   ├── Install-PPDashboard.ps1      ← Full toolchain installer script
 │   └── mcp-config-template.json    ← MCP server config template
 └── alm/
-    ├── .github/                     ← GitHub Actions pipeline templates
+    ├── .github/workflows/           ← GitHub Actions pipeline templates
     ├── pipelines/                   ← Azure DevOps pipeline templates
-    ├── config/                      ← Environment configuration
-    └── src/                         ← ALM source files
+    └── config/                      ← Per-environment configuration (dev/test/prod)
 ```
-
----
-
-## 📦 Credentials the AI will ask you for
-
-Your AI agent will pause and ask you for these during setup. You just paste or type the values — no commands needed:
-
-| Credential | Where to find it |
-|---|---|
-| **GitHub Personal Access Token** | github.com → Settings → Developer settings → Fine-grained tokens → New token (scopes: Contents, Pull requests, Issues, Workflows) |
-| **Dataverse connection URL** | Power Automate → My connections → Common Data Service → `···` → Details (copy the full URL with `?apiName=...`) |
-| **Azure DevOps org URL** | `https://dev.azure.com/YOUR_ORG_NAME` |
-| **Copilot Studio MCP URL** *(optional)* | Copilot Studio → Settings → Channels → MCP Client |
-| **AI API key** *(optional)* | Azure OpenAI or Anthropic — skip this to use GitHub Copilot for free |
-
-> Credentials are stored only in `~/.copilot/` on your local machine. They are **never** committed to this repo.
 
 ---
 
 ## 🤝 Sharing with your team
 
-Send a colleague:
-1. The repo link: **https://github.com/KayodeAjayi200/power-platform-dashboard**
-2. The message: *"Clone it, then paste `SETUP_PROMPT.txt` into your AI agent"*
+1. Send the repo link: **https://github.com/KayodeAjayi200/power-platform-dashboard**
+2. Say: *"Clone it, then paste `SETUP_PROMPT.txt` into your AI agent"*
 
-That's the entire handoff. Their AI handles the rest.
+Each person authenticates their own accounts via browser pop-ups — the AI does everything else.
 
 ---
 
-## 🔧 Developer / manual install
+## 🔧 Manual install (developers)
 
 ```powershell
 git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
@@ -213,6 +207,21 @@ cd "C:\Repositories\Powerapps Stuff"
 pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
 .\Launch-Dashboard.ps1
 ```
+
+For a full manual walkthrough see [`TOOLS-SETUP.md`](./TOOLS-SETUP.md).
+
+---
+
+## 🛠 Toolchain
+
+| Tool | Purpose |
+|---|---|
+| **PAC CLI** | Export, import, and manage Power Platform solutions |
+| **m365 CLI** | SharePoint, Teams, Entra ID operations |
+| **PnP.PowerShell** | Deep SharePoint operations |
+| **Azure CLI** | Azure resources and DevOps authentication |
+| **GitHub CLI** | Repos, pull requests, GitHub Actions |
+| **gh-copilot extension** | AI in the terminal |
 
 ---
 

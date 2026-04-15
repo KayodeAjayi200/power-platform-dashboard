@@ -117,6 +117,7 @@ npm install -g @tiberriver256/mcp-server-azure-devops
 npm install -g @modelcontextprotocol/server-filesystem
 npm install -g @kazuph/mcp-fetch
 npm install -g @playwright/mcp
+npm install -g @pnp/cli-microsoft365
 ```
 
 ---
@@ -250,7 +251,30 @@ If `pac env list` returns environments, the setup is complete.
 
 ---
 
-## Step 9 — Launch the dashboard
+## Step 9 — Install agent skills (Copilot app users only)
+
+> Skip this step if the user is not using the GitHub Copilot desktop app.
+
+Install the skills so they appear in the Skills panel (Skills → personal-agents):
+
+```powershell
+$skillsBase = "$env:USERPROFILE\.agents\skills"
+New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas" | Out-Null
+New-Item -ItemType Directory -Force -Path "$skillsBase\power-platform-dashboard" | Out-Null
+
+Copy-Item "C:\Repositories\Powerapps Stuff\skills\PowerApps-Canvas-Skill.md" `
+          "$skillsBase\powerapps-canvas\SKILL.md" -Force
+Copy-Item "C:\Repositories\Powerapps Stuff\AGENT_SKILL.md" `
+          "$skillsBase\power-platform-dashboard\SKILL.md" -Force
+
+Write-Host "✅ Skills installed — refresh the Skills panel in the Copilot app"
+```
+
+Tell the user to click the 🔄 icon in the Skills panel to see **powerapps-canvas** and **power-platform-dashboard** appear.
+
+---
+
+## Step 10 — Launch the dashboard
 
 ```powershell
 Set-Location "C:\Repositories\Powerapps Stuff"
@@ -261,7 +285,7 @@ Or tell the user to double-click `Launch-Dashboard.ps1` in File Explorer and cho
 
 ---
 
-## Step 10 — First-time configuration in the dashboard
+## Step 11 — First-time configuration in the dashboard
 
 Tell the user to:
 
@@ -287,6 +311,9 @@ Tell the user to:
 | GitHub push fails | Ensure PAT has `Contents: Read/Write` and `Workflows: Read/Write` scopes |
 | Dashboard window doesn't appear | Run `pwsh -File "C:\Repositories\Powerapps Stuff\scripts\PowerPlatformDashboard.ps1"` to see error output |
 | `npm install -g` permission error | Run terminal as the current user (not admin) |
+| Solutions tab shows nothing | Select an environment first on the Environments tab |
+| Export→Unpack→Push stuck | Operation has a 5-minute timeout; check Output tab for error details |
+| Skills not showing in Copilot app | Click 🔄 in Skills panel; verify files exist in `~\.agents\skills\` |
 
 ---
 
@@ -300,7 +327,19 @@ Once everything is installed, the user can ask their AI agent:
 | "Deploy SolutionName to Test" | Open dashboard → Deploy tab → select source env and target env → deploy |
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
 | "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
-| "Add the dashboard tools to a new colleague's machine" | Share this repo URL + tell them to give AGENT_SKILL.md to their AI |
+| "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
+| "Add the dashboard tools to a new colleague's machine" | Share this repo URL + tell them to give `AGENT_SKILL.md` to their AI |
+
+---
+
+## Agent skills reference
+
+This repo includes reference skill files for common Power Platform topics:
+
+| File | When to use it |
+|---|---|
+| `skills/PowerApps-Canvas-Skill.md` | Writing or debugging Canvas App controls, Power Fx formulas, components |
+| `AGENT_SKILL.md` (this file) | Setting up tools, installing MCP servers, onboarding a new machine |
 
 ---
 
