@@ -289,8 +289,6 @@ $Script:cboSolutions.Add_SelectedIndexChanged({
     if ($Script:cboSolutions.SelectedIndex -ge 0 -and $Script:Solutions) {
         $sol = $Script:Solutions[$Script:cboSolutions.SelectedIndex]
         $txtSolName.Text = $sol.UniqueName
-        $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
-        Invoke-LoadComponents $sol.UniqueName
         Refresh-GHCommits
     }
 })
@@ -306,59 +304,21 @@ $tabSol.Controls.Add($txtExportPath)
 $btnBrowse = New-Btn "📁" 418 127 40 24
 $tabSol.Controls.Add($btnBrowse)
 
-Divider "📋 Solution Components" 8 163 830 $tabSol
-$tabSol.Controls.Add((New-Lbl "Filter:" 8 191 42 18 $C.Subtext))
-$txtCompFilter = New-Txt "" 52 188 200
-$tabSol.Controls.Add($txtCompFilter)
-$tabSol.Controls.Add((New-Lbl "Type:" 262 191 42 18 $C.Subtext))
-$cboCompType = New-Combo @("All Types","Canvas App","Cloud Flow","Table","Column","View","Web Resource","Plugin","Model-driven App","Copilot","Environment Variable","Other") 304 188 160
-$tabSol.Controls.Add($cboCompType)
-$btnOpenInPortal = New-Btn "🌐 Open in Portal" 472 186 165 26 $C.Blue
-$tabSol.Controls.Add($btnOpenInPortal)
-
-$Script:DgComponents = New-Object System.Windows.Forms.DataGridView
-$Script:DgComponents.Location  = [System.Drawing.Point]::new(8, 218)
-$Script:DgComponents.Size      = [System.Drawing.Size]::new(888, 70)
-$Script:DgComponents.BackgroundColor = $C.Surface
-$Script:DgComponents.ForeColor       = $C.Text
-$Script:DgComponents.GridColor       = $C.Overlay
-$Script:DgComponents.BorderStyle     = [System.Windows.Forms.BorderStyle]::None
-$Script:DgComponents.ColumnHeadersDefaultCellStyle.BackColor = $C.Panel
-$Script:DgComponents.ColumnHeadersDefaultCellStyle.ForeColor = $C.Text
-$Script:DgComponents.ColumnHeadersBorderStyle = [System.Windows.Forms.DataGridViewHeaderBorderStyle]::None
-$Script:DgComponents.DefaultCellStyle.BackColor            = $C.Surface
-$Script:DgComponents.DefaultCellStyle.ForeColor            = $C.Text
-$Script:DgComponents.AlternatingRowsDefaultCellStyle.BackColor = $C.Base
-$Script:DgComponents.SelectionMode       = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
-$Script:DgComponents.ReadOnly            = $true
-$Script:DgComponents.AllowUserToAddRows  = $false
-$Script:DgComponents.RowHeadersVisible   = $false
-$Script:DgComponents.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
-$Script:DgComponents.Font                = [System.Drawing.Font]::new("Segoe UI", 8.5)
-$c1 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c1.Name="Type";        $c1.HeaderText="Type";         $c1.FillWeight=18
-$c2 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c2.Name="DisplayName"; $c2.HeaderText="Display Name"; $c2.FillWeight=40
-$c3 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c3.Name="UniqueName";  $c3.HeaderText="Unique Name";  $c3.FillWeight=36
-$c4 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c4.Name="Root";        $c4.HeaderText="Root";         $c4.FillWeight=6
-$null = $Script:DgComponents.Columns.AddRange($c1, $c2, $c3, $c4)
-$tabSol.Controls.Add($Script:DgComponents)
-$Script:AllComponents = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-
-Divider "🐙 GitHub Explorer" 8 293 880 $tabSol
-$tabSol.Controls.Add((New-Lbl "Repo:" 8 317 42 18 $C.Subtext))
-$Script:cboGHRepo   = New-Combo @() 52 314 268
+Divider "🐙 GitHub" 8 163 880 $tabSol
+$tabSol.Controls.Add((New-Lbl "Repo:" 8 187 42 18 $C.Subtext))
+$Script:cboGHRepo   = New-Combo @() 52 184 268
 $tabSol.Controls.Add($Script:cboGHRepo)
-$tabSol.Controls.Add((New-Lbl "Branch:" 328 317 52 18 $C.Subtext))
-$Script:cboGHBranch = New-Combo @("main","master") 382 314 120
+$tabSol.Controls.Add((New-Lbl "Branch:" 328 187 52 18 $C.Subtext))
+$Script:cboGHBranch = New-Combo @("main","master") 382 184 120
 $tabSol.Controls.Add($Script:cboGHBranch)
-$btnGHRefresh = New-Btn "🔄 Refresh"   510 314 100 26 $C.Teal
-$btnGHOpen    = New-Btn "🌐 Open"      618 314 80  26 $C.Blue
-$btnGHNewRepo = New-Btn "➕ New Repo"  706 314 106 26 $C.Green
+$btnGHRefresh = New-Btn "🔄 Refresh"   510 184 100 26 $C.Teal
+$btnGHOpen    = New-Btn "🌐 Open"      618 184 80  26 $C.Blue
+$btnGHNewRepo = New-Btn "➕ New Repo"  706 184 106 26 $C.Green
 $tabSol.Controls.Add($btnGHRefresh); $tabSol.Controls.Add($btnGHOpen); $tabSol.Controls.Add($btnGHNewRepo)
 
 $Script:DgGHCommits = New-Object System.Windows.Forms.DataGridView
-$Script:DgGHCommits.Location  = [System.Drawing.Point]::new(8, 346)
-$Script:DgGHCommits.Size      = [System.Drawing.Size]::new(888, 62)
+$Script:DgGHCommits.Location  = [System.Drawing.Point]::new(8, 216)
+$Script:DgGHCommits.Size      = [System.Drawing.Size]::new(888, 80)
 $Script:DgGHCommits.BackgroundColor = $C.Surface
 $Script:DgGHCommits.ForeColor       = $C.Text
 $Script:DgGHCommits.GridColor       = $C.Overlay
@@ -382,15 +342,15 @@ $gc4 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $gc4.Name="SHA
 $null = $Script:DgGHCommits.Columns.AddRange($gc1,$gc2,$gc3,$gc4)
 $tabSol.Controls.Add($Script:DgGHCommits)
 
-$tabSol.Controls.Add((New-Lbl "Ask AI:" 8 416 54 18 $C.Subtext))
-$txtGHAiCmd = New-Txt "Summarise recent changes to this solution in plain English" 62 413 644
+$tabSol.Controls.Add((New-Lbl "Ask AI:" 8 306 54 18 $C.Subtext))
+$txtGHAiCmd = New-Txt "Summarise recent changes to this solution in plain English" 62 303 644
 $tabSol.Controls.Add($txtGHAiCmd)
-$btnGHAskAi = New-Btn "🤖 Ask AI" 710 413 104 26 $C.Mauve
+$btnGHAskAi = New-Btn "🤖 Ask AI" 710 303 104 26 $C.Mauve
 $tabSol.Controls.Add($btnGHAskAi)
 
 $btnSolSyncGH            = New-Object System.Windows.Forms.Button
 $btnSolSyncGH.Text       = "📤  Export from Env → Unpack → Push to GitHub"
-$btnSolSyncGH.Location   = [System.Drawing.Point]::new(8, 445)
+$btnSolSyncGH.Location   = [System.Drawing.Point]::new(8, 338)
 $btnSolSyncGH.Size       = [System.Drawing.Size]::new(488, 36)
 $btnSolSyncGH.BackColor  = $C.Mauve
 $btnSolSyncGH.ForeColor  = $C.Base
@@ -400,7 +360,7 @@ $tabSol.Controls.Add($btnSolSyncGH)
 
 $btnGHPull               = New-Object System.Windows.Forms.Button
 $btnGHPull.Text          = "📥  Pull from GitHub"
-$btnGHPull.Location      = [System.Drawing.Point]::new(504, 445)
+$btnGHPull.Location      = [System.Drawing.Point]::new(504, 338)
 $btnGHPull.Size          = [System.Drawing.Size]::new(230, 36)
 $btnGHPull.BackColor     = $C.Teal
 $btnGHPull.ForeColor     = $C.Base
@@ -410,7 +370,7 @@ $tabSol.Controls.Add($btnGHPull)
 
 $btnGHOpenWS             = New-Object System.Windows.Forms.Button
 $btnGHOpenWS.Text        = "📂  Open Workspace"
-$btnGHOpenWS.Location    = [System.Drawing.Point]::new(742, 445)
+$btnGHOpenWS.Location    = [System.Drawing.Point]::new(742, 338)
 $btnGHOpenWS.Size        = [System.Drawing.Size]::new(154, 36)
 $btnGHOpenWS.BackColor   = $C.Panel
 $btnGHOpenWS.ForeColor   = $C.Text
@@ -1170,27 +1130,8 @@ $btnImportSol.add_Click({
         Run-Cmd "pac solution import --path `"$fp`"" { pac solution import --path $fp } "Solutions"
     }
 })
-# ---- Solution component browser ----
-$filterComp = {
-    $ft = $txtCompFilter.Text.ToLower()
-    $tp = $cboCompType.SelectedItem
-    $Script:DgComponents.Rows.Clear()
-    foreach ($comp in $Script:AllComponents) {
-        $tm = ($tp -eq "All Types" -or $comp.Type -eq $tp)
-        $tx = ($ft -eq "" -or $comp.DisplayName.ToLower() -like "*$ft*" -or $comp.UniqueName.ToLower() -like "*$ft*")
-        if ($tm -and $tx) { $null = $Script:DgComponents.Rows.Add($comp.Type, $comp.DisplayName, $comp.UniqueName, $comp.Root) }
-    }
-}
-$txtCompFilter.add_TextChanged($filterComp)
-$cboCompType.add_SelectedIndexChanged($filterComp)
-
-$btnOpenInPortal.add_Click({
-    $idx = $cboTopEnv.SelectedIndex
-    $url = if ($idx -ge 0 -and $Script:Environments.Count -gt $idx -and $Script:Environments[$idx].Id) {
-        "https://make.powerapps.com/environments/$($Script:Environments[$idx].Id)/solutions"
-    } else { "https://make.powerapps.com" }
-    Start-Process $url
-})
+# ---- Solution component browser (removed from UI; Invoke-LoadComponents kept for future use) ----
+$Script:AllComponents = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 $Script:CompTypeMap = @{
     '1'='Table'; '2'='Column'; '3'='Relationship'; '9'='Option Set';
@@ -1334,7 +1275,6 @@ function Invoke-LoadComponents {
             if ($res.Count -gt 0) {
                 foreach ($c in $res.Components) {
                     $null = $Script:AllComponents.Add([PSCustomObject]$c)
-                    $null = $Script:DgComponents.Rows.Add($c.Type, $c.DisplayName, $c.UniqueName, $c.Root)
                 }
                 $Script:OutputBox.SelectionColor = $Script:C.Green
                 $Script:OutputBox.AppendText("✅ $($res.Count) components loaded`r`n")
