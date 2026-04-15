@@ -384,6 +384,35 @@ $btnGHOpenWS.FlatStyle   = [System.Windows.Forms.FlatStyle]::Flat
 $btnGHOpenWS.Font        = [System.Drawing.Font]::new("Segoe UI", 10)
 $tabSol.Controls.Add($btnGHOpenWS)
 
+# ── Ship My Changes section ────────────────────────────────────────────────────
+# This is the big-picture flow: after exporting + pushing the solution,
+# the user enters the DevOps work item numbers they fixed, and the AI
+# reads the code changes + work item descriptions to auto-write the PR.
+Divider "🚀 Ship My Changes — AI writes your Pull Request" 8 382 880 $tabSol
+
+$tabSol.Controls.Add((New-Lbl "Work Item IDs:" 8 408 110 20 $C.Subtext))
+$txtShipWIIds = New-Txt "123, 456" 120 405 220   # comma-separated DevOps work item IDs
+$tabSol.Controls.Add($txtShipWIIds)
+$tabSol.Controls.Add((New-Lbl "DevOps Project:" 354 408 110 20 $C.Subtext))
+$txtShipProject = New-Txt "" 468 405 180   # DevOps project name (e.g. "veldarr")
+$tabSol.Controls.Add($txtShipProject)
+$tabSol.Controls.Add((New-Lbl "PR into branch:" 660 408 100 20 $C.Subtext))
+$txtShipTarget = New-Txt "main" 762 405 100   # target branch for the pull request
+$tabSol.Controls.Add($txtShipTarget)
+
+$tabSol.Controls.Add((New-Lbl "💡 Enter the ID numbers of the DevOps tasks you completed in this change — the AI will fetch their descriptions automatically" 8 432 880 16 $C.Overlay))
+
+# The big "Ship" button — this does everything: fetch work items, read changes, ask AI, create PR
+$btnShip               = New-Object System.Windows.Forms.Button
+$btnShip.Text          = "🚀  Generate PR Description & Create Pull Request"
+$btnShip.Location      = [System.Drawing.Point]::new(8, 452)
+$btnShip.Size          = [System.Drawing.Size]::new(888, 40)
+$btnShip.BackColor     = $C.Mauve    # Power Apps purple — this is the primary action
+$btnShip.ForeColor     = $C.Base
+$btnShip.FlatStyle     = [System.Windows.Forms.FlatStyle]::Flat
+$btnShip.Font          = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$tabSol.Controls.Add($btnShip)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — SHAREPOINT
@@ -1388,38 +1417,37 @@ $btnListChannels.add_Click({
 # ---- Azure DevOps ----
 $btnAZLogin.add_Click({
     $Script:OutputBox.SelectionColor = $C.Peach
-    $Script:OutputBox.AppendText("`r`n▶ az login — browser opening, complete sign-in then buttons will re-enable...`r`n")
-    $Script:OutputBox.SelectionColor = $C.Text
-    $btnAZLogin.Enabled = $false
-    $btnAZLogin.Text    = "⏳ Signing in..."
+    $Script:OutputBox.AppendText("`r`n▶ az login — a sign-in window is opening. Complete the login in your browser, then come back here.`r`n")
+    $Script:OutputBox.SelectionColor = $C.Console
+    $btnAZLogin.Enabled   = $false
+    $btnAZLogin.Text      = "⏳ Waiting for sign-in..."
     $btnListProjs.Enabled = $false
 
-    # Run az login in background runspace so UI stays responsive
-    $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
-    $rs.Open()
-    $ps = [System.Management.Automation.PowerShell]::Create()
-    $ps.Runspace = $rs
-    $null = $ps.AddScript("az login 2>&1 | Out-String")
-    $handle = $ps.BeginInvoke()
+    # Open az login in its own visible console window.
+    # Running it inside a hidden background runspace can break the browser auth flow,
+    # because the OAuth callback server needs a proper interactive process environment.
+    # Launching a fresh terminal is the most reliable approach.
+    $pwshExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    Start-Process $pwshExe -ArgumentList "-NoProfile -Command `"Write-Host 'Signing in to Azure...'; az login; Write-Host 'You can close this window now.'; Start-Sleep 3`""
 
-    $timer = New-Object System.Windows.Forms.Timer
-    $timer.Interval = 800
-    $timer.add_Tick({
-        if ($handle.IsCompleted) {
-            $timer.Stop(); $timer.Dispose()
-            $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
-            $ps.Dispose(); $rs.Dispose()
+    # Poll az account show every 3 seconds — when it returns account info the login is done
+    $Script:AzLoginTimer = New-Object System.Windows.Forms.Timer
+    $Script:AzLoginTimer.Interval = 3000
+    $Script:AzLoginTimer.add_Tick({
+        $check = az account show 2>&1 | Out-String
+        if ($check -match '"id"' -or $check -match '"name"') {
+            $Script:AzLoginTimer.Stop(); $Script:AzLoginTimer.Dispose()
+            $name = try { ($check | ConvertFrom-Json).name } catch { "Azure" }
             $Script:OutputBox.SelectionColor = $Script:C.Green
-            $Script:OutputBox.AppendText("✅ az login complete:`r`n$result`r`n")
-            $Script:OutputBox.SelectionColor = $Script:C.Text
-            $Script:OutputBox.AppendText("You can now use Azure DevOps buttons.`r`n")
+            $Script:OutputBox.AppendText("✅ Signed in to: $name`r`nAzure DevOps buttons are now active.`r`n")
+            $Script:OutputBox.SelectionColor = $Script:C.Console
             $btnAZLogin.Enabled   = $true
             $btnAZLogin.Text      = "🔐 az login"
             $btnListProjs.Enabled = $true
-            Write-Log "az login" $result "Auth"
+            Write-Log "az login" "Signed in: $name" "Auth"
         }
     })
-    $timer.Start()
+    $Script:AzLoginTimer.Start()
 })
 $btnListProjs.add_Click({
     $org = Get-OrgUrl
@@ -2219,6 +2247,154 @@ $btnGHOpenWS.add_Click({
             Start-Process explorer.exe $parent
         }
     }
+})
+
+# ── Ship My Changes handler ────────────────────────────────────────────────────
+# This is the end-to-end release flow:
+#   1. Fetch the DevOps work item descriptions the user entered
+#   2. Read what changed in the last git commit (the solution files)
+#   3. Ask AI to write a proper PR title + description in plain English
+#   4. Create the GitHub PR and open it in the browser
+$btnShip.add_Click({
+    # Collect and validate inputs
+    $rawIds  = $txtShipWIIds.Text.Trim()
+    $wiIds   = $rawIds -split '[,\s]+' | Where-Object { $_ -match '^\d+$' }
+    if (-not $wiIds) {
+        [System.Windows.Forms.MessageBox]::Show("Enter at least one DevOps work item ID (e.g. 123, 456) before shipping.")
+        return
+    }
+
+    $ghIdx = $Script:cboGHRepo.SelectedIndex
+    if ($ghIdx -lt 0 -or -not $Script:GHRepos) {
+        [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to pick a GitHub repo first."); return
+    }
+
+    $repoNWO     = $Script:GHRepos[$ghIdx].nameWithOwner
+    $srcBranch   = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
+    $targetBranch = $txtShipTarget.Text.Trim(); if (-not $targetBranch) { $targetBranch = "main" }
+    $wsDir       = Get-GHWorkspacePath $repoNWO
+    $solName     = $txtSolName.Text.Trim()
+    $org         = Get-OrgUrl
+    # Use project from the Ship section, falling back to the ADO tab's project field
+    $proj        = $txtShipProject.Text.Trim()
+    if (-not $proj) { $proj = $txtProject.Text.Trim() }
+
+    $btnShip.Enabled = $false; $btnShip.Text = "⏳ Working..."
+    $Script:OutputBox.SelectionColor = $C.Sky
+    $Script:OutputBox.AppendText("`r`n🚀 Shipping '$solName' — fetching work items and generating PR...`r`n")
+    $Script:OutputBox.SelectionColor = $C.Console
+
+    # ── Step 1: Fetch each DevOps work item title + description ─────────────────
+    $wiLines = @()
+    foreach ($id in $wiIds) {
+        $Script:OutputBox.AppendText("  📋 Fetching DevOps work item #$id...`r`n")
+        try {
+            $raw = az boards work-item show --id $id --org $org 2>&1 | Out-String
+            $wi  = $raw | ConvertFrom-Json
+            $title = $wi.fields.'System.Title'
+            $type  = $wi.fields.'System.WorkItemType'
+            # Strip HTML tags from description (DevOps stores description as HTML)
+            $desc  = ($wi.fields.'System.Description' -replace '<[^>]+>','') -replace '\s+',' '
+            $desc  = if ($desc.Trim()) { $desc.Trim().Substring(0, [Math]::Min(300, $desc.Trim().Length)) } else { "(no description)" }
+            $wiLines += "  • #$id [$type] $title — $desc"
+        } catch {
+            # Work item fetch failed — probably not logged in to Azure DevOps yet.
+            # We'll still generate the PR, just without work item details.
+            $wiLines += "  • #$id — (could not fetch from DevOps — check 'az login' on the Azure DevOps tab)"
+        }
+    }
+    $Script:OutputBox.AppendText("  ✅ Work items read`r`n")
+
+    # ── Step 2: Read what changed in the git repo (last commit) ─────────────────
+    $Script:OutputBox.AppendText("  📊 Reading code changes from last commit...`r`n")
+    $diffStat = ""
+    if (Test-Path (Join-Path $wsDir ".git")) {
+        # Try diff between last two commits first; fall back to just showing HEAD
+        $diffStat = (git -C $wsDir diff HEAD~1 HEAD --stat 2>&1 | Out-String).Trim()
+        if (-not $diffStat) {
+            $diffStat = (git -C $wsDir show --stat HEAD 2>&1 | Out-String).Trim()
+        }
+    } else {
+        $diffStat = "(workspace not cloned yet — click '📥 Pull from GitHub' first to enable richer AI output)"
+    }
+
+    # ── Step 3: Ask AI to write the PR title, body, and commit message ──────────
+    $Script:OutputBox.AppendText("  🤖 Asking AI to write the pull request description...`r`n")
+    $wiText  = $wiLines -join "`n"
+    $prompt  = @"
+You are a Power Platform developer writing a GitHub pull request for a non-technical audience.
+Write clearly and avoid jargon. Explain WHAT changed and WHY — as if explaining to a business owner.
+
+Solution name: $solName
+GitHub repo: $repoNWO  |  Branch being merged: $srcBranch  →  $targetBranch
+
+DevOps work items this change addresses:
+$wiText
+
+Files changed in the last commit (git diff stat):
+$diffStat
+
+Please respond in EXACTLY this format (do not add any other text):
+TITLE: <a short PR title, under 80 characters>
+BODY:
+<3 to 5 sentences in plain English explaining what changed, what it fixes or adds, and what to test>
+COMMIT: <a one-line git commit message>
+"@
+    $aiResponse = Invoke-AiRequest $prompt
+
+    # Parse the AI's structured response into title, body, and commit message
+    $prTitle   = if ($aiResponse -match '(?m)^TITLE:\s*(.+)')          { $Matches[1].Trim() } else { "Update: $solName" }
+    $prBody    = if ($aiResponse -match '(?ms)^BODY:\s*\n([\s\S]+?)(?=^COMMIT:|$)') { $Matches[1].Trim() } else { $aiResponse.Trim() }
+    $commitMsg = if ($aiResponse -match '(?m)^COMMIT:\s*(.+)')          { $Matches[1].Trim() } else { "sync: $solName from env" }
+
+    # Append DevOps work item links so they auto-link in the PR
+    $wiLinks = $wiIds | ForEach-Object { "Fixes AB#$_" }
+    $prBody  = "$prBody`n`n---`n$($wiLinks -join "  `n")"
+
+    $Script:OutputBox.SelectionColor = $C.Mauve
+    $Script:OutputBox.AppendText("`r`n🤖 AI-generated PR:`r`n")
+    $Script:OutputBox.AppendText("  Title  : $prTitle`r`n")
+    $Script:OutputBox.AppendText("  Body   : $prBody`r`n")
+    $Script:OutputBox.AppendText("  Commit : $commitMsg`r`n")
+    $Script:OutputBox.SelectionColor = $C.Console
+
+    # ── Step 4: Create the GitHub pull request ──────────────────────────────────
+    if ($srcBranch -eq $targetBranch) {
+        # Can't create a PR from a branch to itself — just show the generated content
+        $Script:OutputBox.SelectionColor = $C.Peach
+        $Script:OutputBox.AppendText("`r`n⚠ Source and target branch are both '$srcBranch' — PR not created.`r`n")
+        $Script:OutputBox.AppendText("  Change the 'PR into branch' field above, or push to a feature branch first.`r`n")
+        $Script:OutputBox.AppendText("  The PR description above has been generated and is ready to paste.`r`n")
+        $Script:OutputBox.SelectionColor = $C.Console
+        # Copy the PR description to clipboard so the user can paste it anywhere
+        [System.Windows.Forms.Clipboard]::SetText("$prTitle`n`n$prBody")
+        $Script:OutputBox.AppendText("  📋 PR description copied to clipboard.`r`n")
+    } else {
+        $Script:OutputBox.AppendText("`r`n  🔀 Creating GitHub PR ($srcBranch → $targetBranch)...`r`n")
+        try {
+            # gh pr create works from anywhere with --repo flag
+            $prOut = gh pr create --repo $repoNWO --base $targetBranch --head $srcBranch `
+                                  --title $prTitle --body $prBody 2>&1 | Out-String
+            $prUrl = ($prOut -split "`n" | Where-Object { $_ -match '^https://' } | Select-Object -First 1).Trim()
+            $Script:OutputBox.SelectionColor = $C.Green
+            $Script:OutputBox.AppendText("  ✅ Pull Request created!`r`n  $prUrl`r`n")
+            $Script:OutputBox.SelectionColor = $C.Console
+            Write-Log "gh pr create" $prOut "Ship"
+            # Open the new PR in the browser
+            if ($prUrl) { Start-Process $prUrl }
+        } catch {
+            $Script:OutputBox.SelectionColor = $C.Red
+            $Script:OutputBox.AppendText("  ❌ Could not create PR: $($_.Exception.Message)`r`n")
+            $Script:OutputBox.AppendText("  Check that you are logged in with 'gh auth status' and the source branch exists on GitHub.`r`n")
+            $Script:OutputBox.SelectionColor = $C.Console
+            # Still copy the description so the user can create the PR manually
+            [System.Windows.Forms.Clipboard]::SetText("$prTitle`n`n$prBody")
+            $Script:OutputBox.AppendText("  📋 PR description copied to clipboard so you can create it manually.`r`n")
+        }
+    }
+
+    $Script:OutputBox.ScrollToCaret()
+    $btnShip.Enabled = $true; $btnShip.Text = "🚀  Generate PR Description & Create Pull Request"
 })
 
 $btnGitPush.add_Click({
