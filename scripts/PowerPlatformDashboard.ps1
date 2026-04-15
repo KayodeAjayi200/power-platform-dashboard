@@ -1558,26 +1558,38 @@ $btnDeploy.add_Click({
     $btnDeploy.Enabled = $false; $btnDeploy.Text = "⏳ Deploying..."
     $Script:OutputBox.AppendText("`r`n🚀 Deploying '$($sol.FriendlyName)' [$($sol.UniqueName)]`r`n")
     $Script:OutputBox.AppendText("   Source : $srcUrl`r`n   Target : $targetUrl`r`n   Managed: $isManaged`r`n")
+    $logQ = $Script:LogQueue
 
     $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $rs.Open()
     $ps = [System.Management.Automation.PowerShell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($srcUrl, $solName, $zipPath, $isManaged, $targetUrl, $overwrite, $publish)
-        # Step 1: Export
+        param($srcUrl, $solName, $zipPath, $isManaged, $targetUrl, $overwrite, $publish, $logQ)
+        $logQ.Enqueue("  📤 Step 1/2 — Exporting '$solName' as $(if($isManaged){'managed'}else{'unmanaged'}) from source...")
         $exportArgs = @("solution", "export", "--path", $zipPath, "--name", $solName, "--environment", $srcUrl)
         if ($isManaged) { $exportArgs += "--managed" }
         $exportResult = pac @exportArgs 2>&1 | Out-String
-        if (-not (Test-Path $zipPath)) { return "❌ Export failed:`r`n$exportResult" }
-
-        # Step 2: Import
+        if (-not (Test-Path $zipPath)) {
+            $logQ.Enqueue("  ❌ Export failed")
+            return "❌ Export failed:`r`n$exportResult"
+        }
+        $kb = [Math]::Round((Get-Item $zipPath).Length / 1KB)
+        $logQ.Enqueue("  ✅ Exported — ${kb} KB")
+        $logQ.Enqueue("  📦 Step 2/2 — Importing into target environment (may take several minutes)...")
         $importArgs = @("solution", "import", "--path", $zipPath, "--environment", $targetUrl)
         if ($overwrite) { $importArgs += "--force-overwrite" }
         if ($publish)   { $importArgs += "--publish-changes" }
         $importResult = pac @importArgs 2>&1 | Out-String
+        if ($importResult -match "succeeded|Import successful") {
+            $logQ.Enqueue("  ✅ Import succeeded")
+        } elseif ($importResult -match "error|failed") {
+            $logQ.Enqueue("  ❌ Import reported errors — check output below")
+        } else {
+            $logQ.Enqueue("  ✅ Import complete")
+        }
         return "EXPORT:`r`n$exportResult`r`nIMPORT:`r`n$importResult"
     }).AddParameters(@{
         srcUrl=$srcUrl; solName=$sol.UniqueName; zipPath=$zipPath
-        isManaged=$isManaged; targetUrl=$targetUrl; overwrite=$overwrite; publish=$publish
+        isManaged=$isManaged; targetUrl=$targetUrl; overwrite=$overwrite; publish=$publish; logQ=$logQ
     })
     $handle = $ps.BeginInvoke()
     $timer = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
@@ -1627,32 +1639,43 @@ $btnUnpackCommit.add_Click({
 
     $btnUnpackCommit.Enabled = $false; $btnUnpackCommit.Text = "⏳ Working..."
     $Script:OutputBox.AppendText("`r`n▶ Export → Unpack → Commit '$($sol.UniqueName)'`r`n")
+    $logQ = $Script:LogQueue
 
     $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $rs.Open()
     $ps = [System.Management.Automation.PowerShell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($srcUrl,$solName,$zipPath,$srcDir,$repo,$branch)
-        # Ensure branch exists
+        param($srcUrl,$solName,$zipPath,$srcDir,$repo,$branch,$logQ)
         Set-Location $repo
+        $logQ.Enqueue("  🌿 Step 1/4 — Switching to branch '$branch'...")
         git fetch origin 2>&1 | Out-Null
         $branches = git branch --list $branch
-        if (-not $branches) { git checkout -b $branch } else { git checkout $branch }
-        # Export unmanaged
+        if (-not $branches) { git checkout -b $branch 2>&1 | Out-Null } else { git checkout $branch 2>&1 | Out-Null }
+        $logQ.Enqueue("  ✅ On branch '$branch'")
+        $logQ.Enqueue("  📤 Step 2/4 — Exporting '$solName' from environment...")
         $export = pac solution export --path $zipPath --name $solName --environment $srcUrl 2>&1 | Out-String
-        if (-not (Test-Path $zipPath)) { return "❌ Export failed:`r`n$export" }
-        # Unpack
+        if (-not (Test-Path $zipPath)) {
+            $logQ.Enqueue("  ❌ Export failed")
+            return "❌ Export failed:`r`n$export"
+        }
+        $kb = [Math]::Round((Get-Item $zipPath).Length / 1KB)
+        $logQ.Enqueue("  ✅ Exported — ${kb} KB")
+        $logQ.Enqueue("  📦 Step 3/4 — Unpacking YAML files to $srcDir...")
         if (Test-Path $srcDir) { Remove-Item $srcDir -Recurse -Force }
         $unpack = pac solution unpack --zipfile $zipPath --folder $srcDir --packagetype Unmanaged 2>&1 | Out-String
-        # Commit
+        $fileCount = (Get-ChildItem $srcDir -Recurse -File -ErrorAction SilentlyContinue).Count
+        $logQ.Enqueue("  ✅ Unpacked — $fileCount files")
+        $logQ.Enqueue("  💾 Step 4/4 — Staging and committing changes...")
         git add "src/$solName/" 2>&1 | Out-Null
         $diff = git diff --staged --stat
         if ($diff) {
-            git commit -m "chore: export $solName from dev [dashboard]" 2>&1 | Out-String
+            git commit -m "chore: export $solName from dev [dashboard]" 2>&1 | Out-Null
+            $logQ.Enqueue("  ✅ Committed — push when ready")
             return "✅ Exported, unpacked and committed:`r`n$diff"
         } else {
+            $logQ.Enqueue("  ℹ No changes since last export")
             return "ℹ No changes to commit — solution unchanged since last export."
         }
-    }).AddParameters(@{srcUrl=$srcUrl;solName=$sol.UniqueName;zipPath=$zipPath;srcDir=$srcDir;repo=$repo;branch=$branch})
+    }).AddParameters(@{srcUrl=$srcUrl;solName=$sol.UniqueName;zipPath=$zipPath;srcDir=$srcDir;repo=$repo;branch=$branch;logQ=$logQ})
     $handle = $ps.BeginInvoke()
     $timer = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
     $timer.add_Tick({
@@ -2142,13 +2165,25 @@ $btnRunChecker.add_Click({
     $Script:CheckerReportPath = $outDir
     $btnRunChecker.Enabled = $false; $btnRunChecker.Text = "⏳ Running..."
     $Script:OutputBox.AppendText("`r`n▶ Running Solution Checker (ruleset: $ruleset)...`r`n")
+    $logQ = $Script:LogQueue
 
     $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $rs.Open()
     $ps = [System.Management.Automation.PowerShell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($path, $ruleset, $outDir)
-        pac solution check --path $path --ruleset $ruleset --outputDirectory $outDir 2>&1 | Out-String
-    }).AddParameters(@{path=$path; ruleset=$ruleset; outDir=$outDir})
+        param($path, $ruleset, $outDir, $logQ)
+        $logQ.Enqueue("  🔍 Uploading to Solution Checker service (this usually takes 2–10 minutes)...")
+        $result = pac solution check --path $path --ruleset $ruleset --outputDirectory $outDir 2>&1 | Out-String
+        $issueCount = ([regex]::Matches($result, 'Critical|High|Medium|Low')).Count
+        if ($result -match "error|critical" -and $result -notmatch "0 error") {
+            $logQ.Enqueue("  ❌ Checker found issues — see report below")
+        } elseif ($result -match "warning") {
+            $logQ.Enqueue("  ⚠ Checker complete — warnings found ($issueCount issue mentions)")
+        } else {
+            $logQ.Enqueue("  ✅ Checker complete — no critical issues")
+        }
+        $logQ.Enqueue("  📊 Report saved to: $outDir")
+        $result
+    }).AddParameters(@{path=$path; ruleset=$ruleset; outDir=$outDir; logQ=$logQ})
     $handle = $ps.BeginInvoke()
     $timer = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
     $timer.add_Tick({
