@@ -1,0 +1,81 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Power Platform CLI (pac)
+        shell: pwsh
+        run: |
+          dotnet tool install -g Microsoft.PowerApps.CLI.Tool 2>$null
+          if ($LASTEXITCODE -ne 0) { dotnet tool update -g Microsoft.PowerApps.CLI.Tool }
+          Write-Host "pac version: $(pac --version)"
+
+      - name: Install Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Dataverse and Canvas MCP tools
+        shell: pwsh
+        run: |
+          dotnet tool install -g Microsoft.PowerPlatform.Dataverse.MCP 2>$null
+          if ($LASTEXITCODE -ne 0) { dotnet tool update -g Microsoft.PowerPlatform.Dataverse.MCP }
+          dotnet tool install -g Microsoft.PowerPlatform.Canvas.MCP 2>$null
+          if ($LASTEXITCODE -ne 0) { dotnet tool update -g Microsoft.PowerPlatform.Canvas.MCP }
+
+      - name: Install npm MCP servers
+        shell: pwsh
+        run: |
+          npm install -g @microsoft/copilot-studio-mcp
+          npm install -g @modelcontextprotocol/server-github
+          npm install -g @tiberriver256/mcp-server-azure-devops
+          npm install -g @modelcontextprotocol/server-filesystem
+          npm install -g @kazuph/mcp-fetch
+          npm install -g @playwright/mcp
+
+      - name: Install PnP CLI (m365)
+        shell: pwsh
+        run: npm install -g @pnp/cli-microsoft365
+
+      - name: Install GitHub CLI Copilot extension
+        shell: pwsh
+        run: gh extension install github/gh-copilot
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify tools
+        shell: pwsh
+        run: |
+          Write-Host "=== Tool versions ==="
+          Write-Host "pac:    $(pac --version 2>$null)"
+          Write-Host "node:   $(node --version)"
+          Write-Host "dotnet: $(dotnet --version)"
+          Write-Host "gh:     $(gh --version | Select-Object -First 1)"
+          Write-Host "m365:   $(m365 --version 2>$null)"
+          Write-Host "=== MCP tools ==="
+          Write-Host "dataverse-mcp: $(dataverse-mcp --version 2>$null)"
+          Write-Host "canvas-mcp:    $(canvas-mcp --version 2>$null)"
+          Write-Host "=== Skills available ==="
+          Get-ChildItem skills/ | Select-Object -ExpandProperty Name
