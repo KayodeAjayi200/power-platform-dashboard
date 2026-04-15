@@ -1193,17 +1193,20 @@ $btnOpenInPortal.add_Click({
 })
 
 $Script:CompTypeMap = @{
-    '1'='Table'; '2'='Column'; '3'='Relationship'; '9'='Entity Relationship';
-    '10'='Intersect Entity'; '14'='Duplicate Rule'; '16'='System Form'; '24'='Connection Role';
-    '26'='Canvas App'; '29'='Cloud Flow'; '33'='View'; '44'='Chart'; '59'='Site Map';
-    '60'='Form'; '61'='View'; '62'='Chart'; '66'='Connection Role';
-    '70'='Field Permission'; '71'='Field Security Profile';
-    '80'='Web Resource'; '90'='Plugin Assembly'; '91'='SDK Step'; '92'='SDK Step Image';
-    '95'='Service Endpoint'; '154'='Business Process Flow';
-    '300'='Model-driven App'; '371'='Page'; '380'='Flow Machine';
-    '400'='AI Builder Model'; '430'='Copilot'; '431'='Copilot Subcomponent';
-    '10028'='Connection Reference'; '10029'='Connector';
-    '10057'='Environment Variable'; '10058'='Env Variable Value';
+    '1'='Table'; '2'='Column'; '3'='Relationship'; '9'='Option Set';
+    '10'='Intersect Entity'; '14'='Workflow Rule'; '16'='System Form'; '22'='View';
+    '24'='Connection Role'; '26'='Saved Query'; '29'='Cloud Flow'; '33'='Site Map';
+    '44'='Chart'; '59'='Plugin Step'; '60'='App Module'; '61'='View';
+    '62'='Chart'; '65'='Dashboard'; '66'='Field Permission'; '70'='Web Resource';
+    '71'='Field Security Profile'; '80'='Plugin Assembly'; '90'='Plugin Assembly';
+    '91'='SDK Step'; '92'='SDK Step Image'; '95'='Service Endpoint';
+    '154'='Business Process Flow'; '158'='Model-driven App';
+    '165'='Connection Reference'; '166'='AI Configuration';
+    '183'='Custom Connector'; '300'='Canvas App'; '301'='Background Operation';
+    '303'='Cloud Flow'; '304'='Connection Reference'; '305'='Env Variable Def';
+    '306'='Env Variable Value'; '307'='AI Model'; '308'='AI Configuration';
+    '371'='Copilot Studio Bot'; '372'='Bot Component'; '380'='Custom API';
+    '400'='Package'; '430'='AI Builder Model';
 }
 
 function Invoke-LoadComponents {
@@ -1213,46 +1216,120 @@ function Invoke-LoadComponents {
     }
     if (-not $solName) { return }
 
-    $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
-    $Script:OutputBox.AppendText("`r`n📋 Loading components for '$solName'...`r`n")
+    $envUrl = if ($Script:Environments.Count -gt 0 -and $cboTopEnv.SelectedIndex -ge 0) {
+        $Script:Environments[$cboTopEnv.SelectedIndex].Url
+    } else { "" }
 
-    $logQ   = $Script:LogQueue
+    $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
+    $Script:OutputBox.AppendText("`r`n📋 Exporting '$solName' to read components (may take a moment)...`r`n")
+
+    $logQ    = $Script:LogQueue
     $typeMap = $Script:CompTypeMap
     $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState="STA"; $rs.ThreadOptions="ReuseThread"; $rs.Open()
     $ps = [powershell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($solName, $logQ, $typeMap)
-        $logQ.Enqueue("⚙️ pac solution list-component --solution-name '$solName'")
-        $raw = pac solution list-component --solution-name $solName 2>&1 | Out-String
+        param($solName, $envUrl, $logQ, $typeMap)
 
-        $components = [System.Collections.Generic.List[hashtable]]::new()
-        $lines = ($raw -split "`r?`n") | Where-Object { $_.Trim() -ne "" }
-        $pastHeader = $false
+        $zipPath = Join-Path $env:TEMP "ppdash_comp_$solName.zip"
+        try {
+            if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+            $envArg = if ($envUrl) { @("--environment", $envUrl) } else { @() }
+            $logQ.Enqueue("⚙️ Exporting solution '$solName' to inspect components...")
+            $exportOut = pac solution export --path $zipPath --name $solName @envArg 2>&1 | Out-String
 
-        foreach ($line in $lines) {
-            if ($line -match '^[\s\-─=]+$') { $pastHeader = $true; continue }
-            if (-not $pastHeader) { continue }
-            # Format: TypeNum  ObjectGuid  RootBehavior  SchemaName
-            if ($line -match '^\s*(\d+)\s+([0-9a-fA-F-]{36})\s+(\d*)\s*(.*)$') {
-                $tn = $matches[1].Trim(); $root = $matches[3].Trim(); $name = $matches[4].Trim()
-                $tp = if ($typeMap.ContainsKey($tn)) { $typeMap[$tn] } else { "Type $tn" }
-                $components.Add(@{Type=$tp; DisplayName=$name; UniqueName=$name; Root=$root})
-            } elseif ($line -match '^\s*(\d+)\s+(.+)$') {
-                $tn = $matches[1].Trim(); $name = $matches[2].Trim()
-                $tp = if ($typeMap.ContainsKey($tn)) { $typeMap[$tn] } else { "Type $tn" }
-                $components.Add(@{Type=$tp; DisplayName=$name; UniqueName=$name; Root=""})
+            if (-not (Test-Path $zipPath)) {
+                $logQ.Enqueue("❌ Export failed: $(($exportOut -split "`n" | Select-Object -First 3) -join ' | ')")
+                return @{ Components=[System.Collections.Generic.List[hashtable]]::new(); Error=$exportOut; Count=0 }
             }
+
+            Add-Type -Assembly System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+
+            # Build GUID→friendly-name map from zip file paths
+            $flowMap = @{}   # guid → flow name  (Workflows/{Name}-{guid}.json)
+            $botSet  = [System.Collections.Generic.List[string]]::new()
+            $entryFolders = @{}  # folder → list of names (for fallback)
+            foreach ($entry in $zip.Entries) {
+                if ($entry.FullName -match '^Workflows/(.+)-([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\.json$') {
+                    $flowMap[$matches[2].ToLower()] = $matches[1]
+                }
+                if ($entry.FullName -match '^bots/([^/]+)/bot\.xml$') {
+                    $botSet.Add($matches[1])
+                }
+                $parts = $entry.FullName -split '/'
+                if ($parts.Count -ge 2 -and $parts[0] -notin @('','[Content_Types].xml')) {
+                    $folder = $parts[0]
+                    if (-not $entryFolders.ContainsKey($folder)) { $entryFolders[$folder] = [System.Collections.Generic.List[string]]::new() }
+                    $leaf = $parts[-1]; if ($leaf -and $leaf -ne '') { $entryFolders[$folder].Add($leaf) }
+                }
+            }
+
+            # Parse RootComponents from solution.xml
+            $solEntry = $zip.Entries | Where-Object { $_.Name -eq 'solution.xml' }
+            $stream = $solEntry.Open()
+            $xml = [xml](New-Object System.IO.StreamReader($stream)).ReadToEnd()
+            $stream.Dispose()
+            $zip.Dispose()
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+            $components = [System.Collections.Generic.List[hashtable]]::new()
+            $comps = @($xml.ImportExportXml.SolutionManifest.RootComponents.RootComponent)
+
+            foreach ($comp in ($comps | Where-Object { $_ -ne $null })) {
+                $typeCode = $comp.type
+                $tp = if ($typeMap.ContainsKey($typeCode)) { $typeMap[$typeCode] } else { "Type $typeCode" }
+                $schema = $comp.schemaName
+                $guid   = if ($comp.id) { ($comp.id -replace '[{}]','').ToLower() } else { "" }
+                $name = if ($schema -and $schema -ne '') {
+                    $schema
+                } elseif ($guid -and $flowMap.ContainsKey($guid)) {
+                    $flowMap[$guid]
+                } elseif ($guid) { $guid } else { "(unknown)" }
+
+                $components.Add(@{Type=$tp; DisplayName=$name; UniqueName=$name; Root=$comp.behavior})
+            }
+
+            # Add bots not already in components
+            foreach ($botName in $botSet) {
+                if (-not ($components | Where-Object { $_.UniqueName -eq $botName })) {
+                    $components.Add(@{Type='Copilot Studio Bot'; DisplayName=$botName; UniqueName=$botName; Root=''})
+                }
+            }
+
+            # Fallback: if still 0 components, add entries grouped by folder
+            if ($components.Count -eq 0) {
+                foreach ($folder in $entryFolders.Keys) {
+                    $folderType = switch ($folder) {
+                        'CanvasApps' { 'Canvas App' }; 'Workflows' { 'Cloud Flow' }
+                        'botcomponents' { 'Bot Component' }; 'bots' { 'Copilot Studio Bot' }
+                        'WebResources' { 'Web Resource' }; 'Other' { 'Other' }
+                        default { $folder }
+                    }
+                    $added = [System.Collections.Generic.HashSet[string]]::new()
+                    foreach ($leaf in $entryFolders[$folder]) {
+                        $leafClean = [System.IO.Path]::GetFileNameWithoutExtension($leaf) -replace '-[0-9A-Fa-f]{8}.*$',''
+                        if ($leafClean -and $added.Add($leafClean)) {
+                            $components.Add(@{Type=$folderType; DisplayName=$leafClean; UniqueName=$leafClean; Root=''})
+                        }
+                    }
+                }
+            }
+
+            $logQ.Enqueue("✅ $($components.Count) components found in '$solName'")
+            return @{ Components=$components; Count=$components.Count; Error='' }
+        } catch {
+            $logQ.Enqueue("❌ Component load error: $($_.Exception.Message)")
+            if (Test-Path $zipPath) { Remove-Item $zipPath -Force -ErrorAction SilentlyContinue }
+            return @{ Components=[System.Collections.Generic.List[hashtable]]::new(); Error=$_.Exception.Message; Count=0 }
         }
-        $logQ.Enqueue("  ✅ $($components.Count) components parsed")
-        return @{ Components=$components; RawOutput=$raw; Count=$components.Count }
-    }).AddParameters(@{solName=$solName; logQ=$logQ; typeMap=$typeMap})
+    }).AddParameters(@{solName=$solName; envUrl=$envUrl; logQ=$logQ; typeMap=$typeMap})
 
     $handle = $ps.BeginInvoke()
     $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
     $timer.add_Tick({
         if ($handle.IsCompleted) {
             $timer.Stop(); $timer.Dispose()
-            $res = try { $ps.EndInvoke($handle) } catch { @{Components=@(); RawOutput=$_.Exception.Message; Count=0} }
+            $res = try { $ps.EndInvoke($handle) } catch { @{Components=@(); Error=$_.Exception.Message; Count=0} }
             $ps.Dispose(); $rs.Dispose()
             if ($res.Count -gt 0) {
                 foreach ($c in $res.Components) {
@@ -1260,11 +1337,15 @@ function Invoke-LoadComponents {
                     $null = $Script:DgComponents.Rows.Add($c.Type, $c.DisplayName, $c.UniqueName, $c.Root)
                 }
                 $Script:OutputBox.SelectionColor = $Script:C.Green
-                $Script:OutputBox.AppendText("✅ $($res.Count) components loaded — use filter/type dropdown to narrow down`r`n")
+                $Script:OutputBox.AppendText("✅ $($res.Count) components loaded`r`n")
+                $Script:OutputBox.SelectionColor = $Script:C.Text
+            } elseif ($res.Error) {
+                $Script:OutputBox.SelectionColor = $Script:C.Red
+                $Script:OutputBox.AppendText("❌ Component load failed: $($res.Error)`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
             } else {
                 $Script:OutputBox.SelectionColor = $Script:C.Peach
-                $Script:OutputBox.AppendText("⚠ Could not parse component list. Is the solution name correct?`r`nRaw output:`r`n$($res.RawOutput)`r`n")
+                $Script:OutputBox.AppendText("⚠ No components found in this solution.`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
             }
         }
