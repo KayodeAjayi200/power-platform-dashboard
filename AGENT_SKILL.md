@@ -113,9 +113,9 @@ dotnet tool update -g Microsoft.PowerPlatform.Canvas.MCP
 
 ---
 
-## Step 3b — Install Canvas App Authoring plugin (AI code generation)
+## Step 3b — Enable AI canvas app generation (build apps from descriptions)
 
-> This enables AI tools (GitHub Copilot CLI, Claude Code) to generate and edit canvas apps from natural language by producing `.pa.yaml` files synced to a live Power Apps Studio session.
+> This lets the user describe a canvas app in plain English and have the AI build it for them. The AI generates the app, validates it, and opens it live in Power Apps Studio — no manual drag-and-drop required.
 >
 > **Official docs:** https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/create-canvas-external-tools
 

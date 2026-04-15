@@ -69,8 +69,8 @@ A **WinForms desktop dashboard** wrapping the entire Power Platform developer to
 | Sync solutions to GitHub with AI summaries | Select repo → click sync → AI explains what changed |
 | Deploy between environments | Visual source→target picker with managed/unmanaged toggle |
 | Create disposable test environments | Name it, pick a region, deploy a solution — fully automated |
-| **Generate canvas apps with AI** | Use `/generate-canvas-app` in Copilot CLI — AI produces `.pa.yaml` files, validates, syncs to Studio |
-| **Edit canvas apps with AI** | Use `/edit-canvas-app` — describe changes in natural language, AI patches your app live |
+| **Build canvas apps by describing what you want** | Tell your AI "build me a canvas app for expense tracking" — it generates the whole app and opens it in Power Apps Studio |
+| **Edit canvas apps in plain English** | Tell your AI "add a filter for pending items" — it updates your live app automatically |
 | Rename canvas app controls with AI | Unpack `.msapp` → AI suggests camelCase names → repack |
 | Run ALM pipelines (Azure DevOps & GitHub Actions) | Click-to-trigger with live log streaming |
 | Query Dataverse, SharePoint, GitHub via AI | MCP-powered AI assistant with 9 connected live tools |
@@ -92,6 +92,26 @@ A **WinForms desktop dashboard** wrapping the entire Power Platform developer to
 | 📋 **Power Automate** | Flow listing and management |
 | ⚙️ **Settings** | GitHub PAT, Dataverse URL, ADO config, AI provider |
 | 📝 **Output** | Live log of all operations |
+
+---
+
+## 🤖 Build canvas apps by describing what you want
+
+Once set up, you can create and edit Power Apps canvas apps just by telling your AI what you need — no coding required.
+
+**Examples of what you can say:**
+
+> *"Build me a canvas app for tracking expenses with an approval workflow"*
+> 
+> *"Create an employee directory app with a photo grid and a search bar"*
+>
+> *"Add a new screen to my app that shows a chart of this month's sales"*
+>
+> *"Make the home screen use cards instead of a plain list"*
+
+Your AI generates the entire app, opens it in Power Apps Studio, and keeps refining it as you give more instructions. You can keep chatting until it looks exactly how you want.
+
+> **One-time setup:** Your AI handles this automatically during initial setup (Step 3b in `AGENT_SKILL.md`). It needs .NET 10 and coauthoring enabled in Power Apps Studio — your AI will guide you through both.
 
 ---
 

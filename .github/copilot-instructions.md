@@ -81,8 +81,8 @@ Read the relevant skill file before writing any code or formulas.
 | "Deploy to Test" | Deploy tab → select envs → deploy |
 | "Create a test environment" | ALM Tools tab → Disposable Environments |
 | "Build a canvas app form" | Read `skills/PowerApps-Canvas-Skill.md` first, then write Power Fx |
-| "Generate a canvas app for me" | Use `/generate-canvas-app` in Copilot CLI — requires Step 3b setup in `AGENT_SKILL.md` |
-| "Edit my canvas app" | Use `/edit-canvas-app` in Copilot CLI — ensure coauthoring is on in Power Apps Studio |
+| "Generate a canvas app for me" | Read `skills/PowerApps-Canvas-Skill.md` → install canvas plugin via Step 3b in `AGENT_SKILL.md` → run `/generate-canvas-app` and describe what the user wants |
+| "Edit my canvas app" | Read `skills/PowerApps-Canvas-Skill.md` → run `/edit-canvas-app` → describe the change; ensure coauthoring is on in Power Apps Studio |
 | "Add a new MCP server" | Update `.mcp.json` + update `AGENT_SKILL.md` Step 4 |
 | "Set up on a new machine" | Follow `AGENT_SKILL.md` steps 1–11 in order |
 
