@@ -24,6 +24,84 @@ metadata:
 
 ---
 
+## 🚨 ALWAYS USE CONTAINERS — No Exceptions
+
+> **This is the single most important rule in this skill. Never skip it.**
+
+**Every screen, every layout, every section — build it with Horizontal and Vertical Containers. Never place controls directly on a screen using absolute X/Y positions.**
+
+### Why containers?
+
+Without containers, apps break when the screen resizes, look different on every device, and become a nightmare to maintain. With containers, everything flows and adjusts automatically — exactly like how websites work.
+
+### The two container types you will always use
+
+| Container | What it does | When to use it |
+|---|---|---|
+| **Vertical Container** | Stacks things top-to-bottom, one after another | Page structure (header → body → footer), lists, forms, sidebars |
+| **Horizontal Container** | Places things side-by-side in a row | Nav bars, icon + label pairs, two-column layouts, button groups |
+
+> **Tip:** These two containers — nested inside each other — can build any layout you can imagine.
+
+### The correct way to structure every screen
+
+```
+Screen
+└── VerticalContainer (fills the whole screen)
+    ├── HorizontalContainer  ← Header row
+    │   ├── Label (app name)
+    │   └── HorizontalContainer  ← nav icons grouped together
+    ├── HorizontalContainer  ← Body row (fills remaining space)
+    │   ├── VerticalContainer  ← left side nav (optional)
+    │   └── VerticalContainer  ← main content area
+    │       ├── HorizontalContainer  ← filter/search bar
+    │       └── Gallery or Form
+    └── HorizontalContainer  ← Footer (optional)
+```
+
+### Essential container properties — always set these
+
+```powerfx
+// Make the container fill all available space in its parent
+FlexibleHeight = true
+FlexibleWidth  = true
+
+// Add breathing room between items inside the container
+Gap = 8   // 8 pixels between children — adjust as needed
+
+// Add inner spacing so content doesn't touch the edges
+PaddingTop    = 12
+PaddingBottom = 12
+PaddingLeft   = 16
+PaddingRight  = 16
+
+// Align children — Stretch makes them fill the container width
+AlignInContainer = AlignInContainer.Stretch
+```
+
+### What NOT to do (and why)
+
+```powerfx
+// ❌ WRONG — absolute positioning breaks on different screen sizes
+Label1.X = 200
+Label1.Y = 150
+Label1.Width = 400
+
+// ✅ CORRECT — put Label1 inside a Vertical or Horizontal Container
+// and let the container handle the position automatically
+// The label just needs its FlexibleWidth = true and the container handles the rest
+```
+
+### Hiding a whole section — containers make this trivial
+
+```powerfx
+// Hide the entire filter panel (and everything inside it) in one line
+// Without a container you'd have to hide every single control individually
+FilterPanelContainer.Visible = varShowFilters
+```
+
+---
+
 ## 1. Structured Layouts with Containers
 
 **Rule: Never use absolute X/Y positioning. Always use containers.**
