@@ -2052,8 +2052,8 @@ $btnSolSyncGH.add_Click({
 
             $logQ.Enqueue("  📤 Step 2/4 — Exporting '$solName' from environment...")
             if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-            $export = pac solution export --path $zipPath --name $solName --environment $envUrl 2>&1 | Out-String
-            if (-not (Test-Path $zipPath)) { return "❌ Export failed: $export" }
+            $export = pac solution export --path $zipPath --name $solName --environment $envUrl --overwrite 2>&1 | Out-String
+            if (-not (Test-Path $zipPath)) { return "❌ Export failed: $(($export -split "`n" | Select-Object -Last 3) -join ' | ')" }
             $logQ.Enqueue("  ✅ Exported — $(([System.IO.FileInfo]$zipPath).Length / 1KB -as [int]) KB")
 
             $logQ.Enqueue("  📦 Step 3/4 — Unpacking solution files...")
@@ -2085,13 +2085,16 @@ $btnSolSyncGH.add_Click({
         }
     }).AddParameters(@{envUrl=$envUrl; solName=$sol.UniqueName; repoNWO=$repoNWO; branch=$branch; wsDir=$wsDir; logQ=$logQ})
 
-    $handle = $ps.BeginInvoke()
-    $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
-    $timer.add_Tick({
-        if ($handle.IsCompleted) {
-            $timer.Stop(); $timer.Dispose()
-            $result = try { $ps.EndInvoke($handle) } catch { $_.Exception.Message }
-            $ps.Dispose(); $rs.Dispose()
+    $Script:SyncHandle = $ps.BeginInvoke()
+    $Script:SyncPs = $ps; $Script:SyncRs = $rs
+    $Script:SyncStart = [datetime]::Now
+    $Script:SyncTimer = New-Object System.Windows.Forms.Timer; $Script:SyncTimer.Interval = 1000
+    $Script:SyncTimer.add_Tick({
+        $elapsed = ([datetime]::Now - $Script:SyncStart).TotalSeconds
+        if ($Script:SyncHandle.IsCompleted) {
+            $Script:SyncTimer.Stop(); $Script:SyncTimer.Dispose()
+            $result = try { $Script:SyncPs.EndInvoke($Script:SyncHandle) } catch { $_.Exception.Message }
+            $Script:SyncPs.Dispose(); $Script:SyncRs.Dispose()
             $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export from Env → Unpack → Push to GitHub"
             if ($result -is [string]) {
                 $Script:OutputBox.SelectionColor = $Script:C.Red
@@ -2125,8 +2128,16 @@ $btnSolSyncGH.add_Click({
                 $Script:OutputBox.AppendText("📋 Summary prompt copied to clipboard — paste into your AI chat`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
             }
+        } elseif ($elapsed -gt 300) {
+            # 5-minute timeout — abort
+            $Script:SyncTimer.Stop(); $Script:SyncTimer.Dispose()
+            $Script:SyncPs.Stop(); $Script:SyncPs.Dispose(); $Script:SyncRs.Dispose()
+            $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export from Env → Unpack → Push to GitHub"
+            $Script:OutputBox.SelectionColor = $Script:C.Red
+            $Script:OutputBox.AppendText("❌ Timed out after 5 minutes — pac solution export may have hung. Check your environment connection and try again.`r`n")
+            $Script:OutputBox.SelectionColor = $Script:C.Text
         }
-    }); $timer.Start()
+    }); $Script:SyncTimer.Start()
 })
 
 $btnGHPull.add_Click({
