@@ -38,7 +38,7 @@ Read the relevant skill file before writing any code or formulas.
 - **UI framework:** `System.Windows.Forms` (.NET 4.x via PowerShell 5.1)
 - **CLI tools used:** `pac` (Power Platform CLI), `gh` (GitHub CLI), `git`, `az` (Azure CLI), `m365` (PnP CLI)
 - **MCP servers:** Dataverse MCP, Canvas MCP, Canvas Authoring MCP (for AI code gen), Copilot Studio MCP, GitHub MCP, Azure DevOps MCP, Filesystem MCP
-- **Color palette:** Catppuccin Mocha — keys: `Base`, `Mantle`, `Surface`, `Overlay`, `Text`, `Subtext`, `Blue`, `Green`, `Peach`, `Red`, `Teal`, `Mauve`, `Sky`, `Panel`
+- **Color palette:** Power Apps Fluent light theme — keys: `Base`, `Mantle`, `Surface`, `Overlay`, `Text`, `Subtext`, `Blue`, `Green`, `Peach`, `Red`, `Teal`, `Mauve`, `Sky`, `Panel`, `Console`
 
 ---
 
@@ -55,8 +55,8 @@ Read the relevant skill file before writing any code or formulas.
   ```
 - **Script-scope variables for timers** — WinForms timer variables in click handlers must be stored as `$Script:TimerName` (not local `$timer`) to prevent PowerShell garbage-collecting them
 - **No `pac solution list-component`** — that command does not exist. Use export+zip+solution.xml parsing instead
-- **Color palette** — `$Script:C` hashtable; valid keys listed above; no "Yellow"
-- **Form dimensions** — Form: 930×810; Tab panel: Location(8,58), Size(910,515); OutputBox: y=608, h=165
+- **Color palette** — `$Script:C` hashtable; valid keys: `Base`, `Mantle`, `Surface`, `Overlay`, `Text`, `Subtext`, `Blue`, `Green`, `Peach`, `Red`, `Teal`, `Mauve`, `Sky`, `Panel`, `Console`; no "Yellow"; `Console` is for text inside the dark output box
+- **Form dimensions** — Form: 930×810 (resizable, min 800×650); Tab panel: Location(8,62), Size(910,511), Anchor all 4 sides; OutputBox: y=608, h=165, Anchor Bottom+Left+Right
 
 ---
 
