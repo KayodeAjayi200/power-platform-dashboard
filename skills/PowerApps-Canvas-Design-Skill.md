@@ -79,6 +79,37 @@ PaddingRight  = 16
 AlignInContainer = AlignInContainer.Stretch
 ```
 
+### 🚨 Drop Shadow — set to None unless you explicitly want it
+
+Power Apps gives every container a **light drop shadow by default**. If you leave it on everywhere, the screen ends up looking cluttered and heavy — shadows on shadows, cards inside cards, all with halos.
+
+**Rule: Always explicitly set `DropShadow` on every container. Only use a shadow where it genuinely lifts an element above the page — like a modal dialog, a floating card, or a top-level panel.**
+
+```powerfx
+// ✅ For structural/layout containers — turn shadow OFF
+// (header bar, body wrapper, nav column, filter row, screen root)
+DropShadow = DropShadow.None
+
+// ✅ For a card or panel that should visually "float" above the page
+DropShadow = DropShadow.Light   // subtle — use for cards in a list
+DropShadow = DropShadow.Regular // medium — use for side panels, drawers
+DropShadow = DropShadow.Bold    // strong — use for modal dialogs only
+
+// ❌ WRONG — leaving it as default means hidden shadows accumulate
+// and the UI looks messy without you realising why
+```
+
+**When to use each:**
+
+| `DropShadow` value | Use it for |
+|---|---|
+| `None` | Every layout/structural container (header, body, nav, rows) |
+| `Light` | Gallery cards, list items, info panels inside a page |
+| `Regular` | Side panels, drawers, popovers |
+| `Bold` | Modal dialogs, confirmation popups |
+
+**Quick rule of thumb:** if the container is just organising layout (not presenting content as a distinct card), it gets `DropShadow.None`.
+
 ### What NOT to do (and why)
 
 ```powerfx
@@ -295,9 +326,11 @@ Replace the hardcoded color with your named formula:
 EncodeUrl("<svg ...><path fill='" & Text(BrandColor) & "' .../></svg>")
 ```
 
-### Drop shadows (workaround)
+### Adding a custom drop shadow to a container (HTML workaround)
 
-Power Apps doesn't have a native shadow property on containers. Use an HTML Text control placed *behind* your card:
+> 💡 Only do this when `DropShadow.Light` isn't enough and you need precise control (e.g. coloured shadow, larger blur). For most cases, use the built-in `DropShadow` property above — and remember to set it to `None` on layout containers.
+
+Power Apps' built-in shadow options are limited. For a fully custom shadow, place an HTML Text control *behind* your card at the same position:
 
 ```powerfx
 // HtmlText property:
