@@ -29,23 +29,24 @@ $Script:DisposableEnvs = [System.Collections.ArrayList]::new()
 # Thread-safe queue — runspaces write here, UI timer drains it to OutputBox
 $Script:LogQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
 
-# ── Colour palette (Catppuccin Mocha) ─────────────────────────────────────────
+# ── Colour palette (Power Apps Fluent — light, clean, like the Power Apps Studio) ──
 function RGB([int]$r,[int]$g,[int]$b) { [System.Drawing.Color]::FromArgb($r,$g,$b) }
 $C = @{
-    Base    = (RGB 30 30 46)
-    Mantle  = (RGB 24 24 37)
-    Surface = (RGB 49 50 68)
-    Overlay = (RGB 88 91 112)
-    Text    = (RGB 202 211 245)
-    Subtext = (RGB 166 173 200)
-    Blue    = (RGB 137 180 250)
-    Green   = (RGB 166 227 161)
-    Peach   = (RGB 250 179 135)
-    Red     = (RGB 243 139 168)
-    Teal    = (RGB 148 226 213)
-    Mauve   = (RGB 203 166 247)
-    Sky     = (RGB 137 220 235)
-    Panel   = (RGB 36 39 58)
+    Base    = (RGB 248 248 248)   # Light page background — mimics Power Apps Studio canvas
+    Mantle  = (RGB 30 30 30)      # Dark — used only for the console/output box background
+    Surface = (RGB 255 255 255)   # Pure white — for text boxes, combo boxes, and card areas
+    Overlay = (RGB 200 198 196)   # Soft gray — divider lines and borders
+    Text    = (RGB 50 49 48)      # Near-black — main text on light backgrounds
+    Subtext = (RGB 96 94 92)      # Medium gray — secondary/hint text and divider labels
+    Blue    = (RGB 0 120 212)     # Microsoft blue — primary action buttons
+    Green   = (RGB 73 130 5)      # Success green — positive actions like "Switch" and "Deploy"
+    Peach   = (RGB 202 80 16)     # Orange — secondary actions and warnings
+    Red     = (RGB 196 49 75)     # Red — destructive or error actions
+    Teal    = (RGB 3 131 135)     # Teal — informational actions
+    Mauve   = (RGB 116 39 116)    # Power Apps purple — title bar and accent colour
+    Sky     = (RGB 0 183 195)     # Cyan — output box section headers (on dark background)
+    Panel   = (RGB 245 240 250)   # Very light purple tint — tab page backgrounds
+    Console = (RGB 210 210 210)   # Light gray — text inside the dark console/output box
 }
 $Script:C = $C   # make palette available inside all timer/event closures
 
@@ -68,7 +69,7 @@ function Run-Cmd {
     param([string]$Label, [scriptblock]$Block, [string]$Cat = "General")
     $Script:OutputBox.SelectionColor = $C.Sky
     $Script:OutputBox.AppendText("`r`n▶ $Label`r`n")
-    $Script:OutputBox.SelectionColor = $C.Text
+    $Script:OutputBox.SelectionColor = $C.Console   # light gray — readable on dark console background
     try {
         $out = & $Block 2>&1 | Out-String
         $Script:OutputBox.AppendText($out.TrimEnd() + "`r`n")
@@ -76,7 +77,7 @@ function Run-Cmd {
     } catch {
         $Script:OutputBox.SelectionColor = $C.Red
         $Script:OutputBox.AppendText("ERROR: $($_.Exception.Message)`r`n")
-        $Script:OutputBox.SelectionColor = $C.Text
+        $Script:OutputBox.SelectionColor = $C.Console   # back to normal console text color
     }
     $Script:OutputBox.ScrollToCaret()
 }
@@ -90,7 +91,7 @@ function New-Btn {
     $b.Size       = [System.Drawing.Size]::new($W, $H)
     $b.FlatStyle  = [System.Windows.Forms.FlatStyle]::Flat
     $b.BackColor  = $Bg
-    $b.ForeColor  = $C.Mantle
+    $b.ForeColor  = [System.Drawing.Color]::White   # white text looks clean on all coloured Power Apps buttons
     $b.Font       = [System.Drawing.Font]::new("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
     $b.FlatAppearance.BorderSize = 0
     $b.Cursor     = [System.Windows.Forms.Cursors]::Hand
@@ -164,7 +165,7 @@ function Invoke-AiRequest {
 
 function Divider {
     param([string]$Label, [int]$X, [int]$Y, [int]$W=830, [System.Windows.Forms.Control]$Parent)
-    $l = New-Lbl "── $Label $('─' * [Math]::Max(1, [int](($W - ($Label.Length * 8)) / 8)))" $X $Y $W 18 $C.Overlay
+    $l = New-Lbl "── $Label $('─' * [Math]::Max(1, [int](($W - ($Label.Length * 8)) / 8)))" $X $Y $W 18 $C.Subtext
     $Parent.Controls.Add($l)
 }
 
@@ -172,51 +173,56 @@ function Divider {
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = "⚡ Power Platform Dashboard"
 $form.Size            = [System.Drawing.Size]::new(930, 810)
-$form.MinimumSize     = [System.Drawing.Size]::new(930, 750)
+$form.MinimumSize     = [System.Drawing.Size]::new(800, 650)   # allow the user to resize the window smaller
 $form.StartPosition   = "CenterScreen"
 $form.BackColor       = $C.Base
 $form.ForeColor       = $C.Text
 $form.Font            = [System.Drawing.Font]::new("Segoe UI", 9)
 $form.Icon            = [System.Drawing.SystemIcons]::Application
 
-# Title strip
+# Title strip — Power Apps purple header bar that stretches full width when the window is resized
 $titleStrip = New-Object System.Windows.Forms.Panel
-$titleStrip.Size      = [System.Drawing.Size]::new(930, 50)
-$titleStrip.Location  = [System.Drawing.Point]::new(0, 0)
-$titleStrip.BackColor = $C.Panel
+$titleStrip.Size      = [System.Drawing.Size]::new(930, 54)
+$titleStrip.BackColor = $C.Mauve   # Power Apps brand purple
+$titleStrip.Dock      = [System.Windows.Forms.DockStyle]::Top   # auto-fills the full width when form is resized
 $form.Controls.Add($titleStrip)
 
-$titleLbl = New-Lbl "  ⚡ PP Dashboard" 0 12 200 26 $C.Blue
+$titleLbl = New-Lbl "  ⚡ PP Dashboard" 0 14 210 26 ([System.Drawing.Color]::White)
 $titleLbl.Font = [System.Drawing.Font]::new("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
 $titleStrip.Controls.Add($titleLbl)
 
-$titleStrip.Controls.Add((New-Lbl "Env:" 205 15 36 18 $C.Subtext))
+$titleStrip.Controls.Add((New-Lbl "Env:" 215 17 36 18 ([System.Drawing.Color]::White)))
 $cboTopEnv               = New-Object System.Windows.Forms.ComboBox
-$cboTopEnv.Location      = [System.Drawing.Point]::new(240, 11)
+$cboTopEnv.Location      = [System.Drawing.Point]::new(250, 13)
 $cboTopEnv.Size          = [System.Drawing.Size]::new(360, 28)
 $cboTopEnv.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $cboTopEnv.BackColor     = $C.Surface
 $cboTopEnv.ForeColor     = $C.Text
 $cboTopEnv.FlatStyle     = [System.Windows.Forms.FlatStyle]::Flat
+$cboTopEnv.Anchor        = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right   # grows wider when window is resized
 $titleStrip.Controls.Add($cboTopEnv)
 $btnTopSwitch            = New-Object System.Windows.Forms.Button
 $btnTopSwitch.Text       = "⚡ Switch"
-$btnTopSwitch.Location   = [System.Drawing.Point]::new(608, 11)
+$btnTopSwitch.Location   = [System.Drawing.Point]::new(618, 13)
 $btnTopSwitch.Size       = [System.Drawing.Size]::new(88, 28)
 $btnTopSwitch.BackColor  = $C.Green
-$btnTopSwitch.ForeColor  = $C.Base
+$btnTopSwitch.ForeColor  = [System.Drawing.Color]::White
 $btnTopSwitch.FlatStyle  = [System.Windows.Forms.FlatStyle]::Flat
+$btnTopSwitch.FlatAppearance.BorderSize = 0
 $btnTopSwitch.Font       = [System.Drawing.Font]::new("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+$btnTopSwitch.Anchor     = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right   # stays right-aligned when window grows
 $titleStrip.Controls.Add($btnTopSwitch)
-$envStatusLbl = New-Lbl "" 702 15 218 20 $C.Subtext
+$envStatusLbl = New-Lbl "" 712 17 208 20 ([System.Drawing.Color]::White)
 $envStatusLbl.TextAlign = "MiddleRight"
+$envStatusLbl.Anchor    = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right   # stays pinned to the right edge
 $titleStrip.Controls.Add($envStatusLbl)
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
 $tabs = New-Object System.Windows.Forms.TabControl
-$tabs.Location = [System.Drawing.Point]::new(8, 58)
-$tabs.Size     = [System.Drawing.Size]::new(910, 515)
+$tabs.Location = [System.Drawing.Point]::new(8, 62)
+$tabs.Size     = [System.Drawing.Size]::new(910, 511)
 $tabs.Font     = [System.Drawing.Font]::new("Segoe UI", 9)
+$tabs.Anchor   = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right   # the tab panel grows in all directions when the window is resized
 $form.Controls.Add($tabs)
 
 function New-Tab([string]$Name) {
@@ -968,10 +974,11 @@ $tabAI.Controls.Add((New-Lbl "Ctrl+Enter to send  •  Configure AI in ⚙️ Se
 $outputHeader           = New-Object System.Windows.Forms.Panel
 $outputHeader.Location  = [System.Drawing.Point]::new(8, 580)
 $outputHeader.Size      = [System.Drawing.Size]::new(910, 26)
-$outputHeader.BackColor = $C.Panel
+$outputHeader.BackColor = $C.Mauve   # purple header to match the title bar — clearly marks "this is the output area"
+$outputHeader.Anchor    = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right   # stays pinned to the bottom and stretches in width
 $form.Controls.Add($outputHeader)
 
-$outputHeader.Controls.Add((New-Lbl "  Output" 0 4 100 20 $C.Subtext))
+$outputHeader.Controls.Add((New-Lbl "  Output" 0 4 100 20 ([System.Drawing.Color]::White)))
 $btnClearOutput = New-Btn "🗑 Clear"           780 2 60 22 $C.Red
 $btnCopyLog     = New-Btn "📋 Copy Log (for Copilot)" 620 2 156 22 $C.Mauve
 $outputHeader.Controls.Add($btnClearOutput)
@@ -980,11 +987,12 @@ $outputHeader.Controls.Add($btnCopyLog)
 $Script:OutputBox = New-Object System.Windows.Forms.RichTextBox
 $Script:OutputBox.Location   = [System.Drawing.Point]::new(8, 608)
 $Script:OutputBox.Size       = [System.Drawing.Size]::new(910, 165)
-$Script:OutputBox.BackColor  = $C.Mantle
-$Script:OutputBox.ForeColor  = $C.Text
+$Script:OutputBox.BackColor  = $C.Mantle   # dark background — like a terminal/console window
+$Script:OutputBox.ForeColor  = $C.Console  # light gray text readable on the dark background
 $Script:OutputBox.Font       = [System.Drawing.Font]::new("Cascadia Code", 9)
 $Script:OutputBox.ReadOnly   = $true
 $Script:OutputBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$Script:OutputBox.Anchor     = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right   # stays pinned to the bottom and stretches wider when the window is resized
 $form.Controls.Add($Script:OutputBox)
 
 # ── EVENT WIRING ──────────────────────────────────────────────────────────────
@@ -2803,15 +2811,15 @@ $form.add_Load({
     $Script:DrainTimer.add_Tick({
         $msg = $null
         while ($Script:LogQueue.TryDequeue([ref]$msg)) {
-            $col = if     ($msg -match '^  ✅|^✅') { [System.Drawing.Color]::FromArgb(166,227,161) }
-                   elseif ($msg -match '^  ❌|^❌') { [System.Drawing.Color]::FromArgb(243,139,168) }
-                   elseif ($msg -match '^  ⚠|^⚠')  { [System.Drawing.Color]::FromArgb(250,179,135) }
-                   elseif ($msg -match '^  🤖|^🤖') { [System.Drawing.Color]::FromArgb(203,166,247) }
-                   elseif ($msg -match '📦|📤|📊|⚙️|🔧|⬆') { [System.Drawing.Color]::FromArgb(137,220,235) }
-                   else   { [System.Drawing.Color]::FromArgb(202,211,245) }
+            $col = if     ($msg -match '^  ✅|^✅') { $C.Green }
+                   elseif ($msg -match '^  ❌|^❌') { $C.Red }
+                   elseif ($msg -match '^  ⚠|^⚠')  { $C.Peach }
+                   elseif ($msg -match '^  🤖|^🤖') { $C.Mauve }
+                   elseif ($msg -match '📦|📤|📊|⚙️|🔧|⬆') { $C.Sky }
+                   else   { $C.Console }   # default console text — light gray readable on dark output box
             $Script:OutputBox.SelectionColor = $col
             $Script:OutputBox.AppendText("$msg`r`n")
-            $Script:OutputBox.SelectionColor = [System.Drawing.Color]::FromArgb(202,211,245)
+            $Script:OutputBox.SelectionColor = $C.Console   # reset to default console text colour
             $Script:OutputBox.ScrollToCaret()
         }
     })

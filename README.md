@@ -178,7 +178,9 @@ Your AI agent pauses and asks for these during setup — just paste the values w
 power-platform-dashboard/
 ├── SETUP_PROMPT.txt                  ← ★ Paste into any AI to set up everything
 ├── AGENT_SKILL.md                    ← Full setup instructions the AI follows
-├── Launch-Dashboard.ps1              ← Double-click launcher (no terminal needed)
+├── Launch-Dashboard.bat              ← Double-click to open the dashboard
+├── Create-Shortcut.ps1               ← Run once to get a taskbar-pinnable Desktop icon
+├── Launch-Dashboard.ps1              ← PowerShell launcher (right-click → Run with PowerShell)
 ├── TOOLS-SETUP.md                    ← Manual setup reference for developers
 ├── .mcp.json                         ← MCP server config (used by VS Code Copilot)
 ├── .github/
@@ -214,8 +216,10 @@ Each person authenticates their own accounts via browser pop-ups — the AI does
 git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
 cd "C:\Repositories\Powerapps Stuff"
 pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
-.\Launch-Dashboard.ps1
+.\Create-Shortcut.ps1   # puts a pinnable icon on your Desktop
 ```
+
+Then double-click **"Power Platform Dashboard"** on your Desktop, or double-click `Launch-Dashboard.bat`.
 
 For a full manual walkthrough see [`TOOLS-SETUP.md`](./TOOLS-SETUP.md).
 

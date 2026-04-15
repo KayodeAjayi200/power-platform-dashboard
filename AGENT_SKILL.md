@@ -319,15 +319,31 @@ Tell the user to click the 🔄 icon in the Skills panel to see **powerapps-canv
 
 ---
 
-## Step 10 — Launch the dashboard
+## Step 10 — Create desktop shortcut (one-time setup)
+
+Run this to create a proper desktop shortcut that can be double-clicked or pinned to the taskbar:
+
+```powershell
+Set-Location $repoRoot
+.\Create-Shortcut.ps1
+```
+
+This puts **"Power Platform Dashboard"** on the user's Desktop. Tell them:
+- **To open it**: double-click the icon on the Desktop
+- **To pin to taskbar**: right-click the desktop icon → "Pin to taskbar"
+- **Alternative**: double-click `Launch-Dashboard.bat` in the repo folder any time
+
+---
+
+## Step 10b — Launch the dashboard (for testing)
 
 ```powershell
 # Navigate to wherever the user cloned the repo, then launch
 Set-Location $repoRoot
-.\Launch-Dashboard.ps1
+.\Launch-Dashboard.bat
 ```
 
-Or tell the user to find `Launch-Dashboard.ps1` in their cloned folder, right-click it, and choose **"Run with PowerShell"**.
+Or tell the user to double-click `Launch-Dashboard.bat` in their repo folder.
 
 ---
 
