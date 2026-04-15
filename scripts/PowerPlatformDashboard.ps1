@@ -47,6 +47,7 @@ $C = @{
     Sky     = (RGB 137 220 235)
     Panel   = (RGB 36 39 58)
 }
+$Script:C = $C   # make palette available inside all timer/event closures
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1222,9 +1223,9 @@ $btnAZLogin.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $Script:OutputBox.SelectionColor = $C.Green
+            $Script:OutputBox.SelectionColor = $Script:C.Green
             $Script:OutputBox.AppendText("✅ az login complete:`r`n$result`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
+            $Script:OutputBox.SelectionColor = $Script:C.Text
             $Script:OutputBox.AppendText("You can now use Azure DevOps buttons.`r`n")
             $btnAZLogin.Enabled   = $true
             $btnAZLogin.Text      = "🔐 az login"
@@ -1526,9 +1527,9 @@ $btnAuthTarget.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $Script:OutputBox.SelectionColor = $C.Green
+            $Script:OutputBox.SelectionColor = $Script:C.Green
             $Script:OutputBox.AppendText("✅ Auth complete:`r`n$result`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
+            $Script:OutputBox.SelectionColor = $Script:C.Text
             $btnAuthTarget.Enabled = $true; $btnAuthTarget.Text = "🔐 Auth to Target"
         }
     }); $timer.Start()
@@ -1598,12 +1599,16 @@ $btnDeploy.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $col = if ($result -match "❌|error|failed" -and $result -notmatch "succeeded") { $C.Red } else { $C.Green }
-            $Script:OutputBox.SelectionColor = $col
-            $Script:OutputBox.AppendText("$result`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
-            Write-Log "Deploy $($sol.UniqueName)" $result "Deploy"
             $btnDeploy.Enabled = $true; $btnDeploy.Text = "🚀  Deploy Solution"
+            if ($result -match "❌|Export failed") {
+                $Script:OutputBox.SelectionColor = $Script:C.Red
+                $Script:OutputBox.AppendText("❌ Deploy FAILED — see details above`r`n")
+            } else {
+                $Script:OutputBox.SelectionColor = $Script:C.Green
+                $Script:OutputBox.AppendText("✅ Deploy COMPLETE — '$($sol.UniqueName)' → $targetUrl`r`n")
+            }
+            $Script:OutputBox.SelectionColor = $Script:C.Text
+            Write-Log "Deploy $($sol.UniqueName)" $result "Deploy"
         }
     }); $timer.Start()
 })
@@ -1683,12 +1688,19 @@ $btnUnpackCommit.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $col = if ($result -match "❌") { $C.Red } else { $C.Green }
-            $Script:OutputBox.SelectionColor = $col
-            $Script:OutputBox.AppendText("$result`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
-            Write-Log "Export+Unpack+Commit $($sol.UniqueName)" $result "SourceControl"
             $btnUnpackCommit.Enabled = $true; $btnUnpackCommit.Text = "📦 Export+Unpack+Commit"
+            if ($result -match "❌") {
+                $Script:OutputBox.SelectionColor = $Script:C.Red
+                $Script:OutputBox.AppendText("❌ Export/Unpack/Commit FAILED — see details above`r`n")
+            } elseif ($result -match "ℹ No changes") {
+                $Script:OutputBox.SelectionColor = $Script:C.Sky
+                $Script:OutputBox.AppendText("ℹ No changes to commit — '$($sol.UniqueName)' is up to date`r`n")
+            } else {
+                $Script:OutputBox.SelectionColor = $Script:C.Green
+                $Script:OutputBox.AppendText("✅ Export+Unpack+Commit COMPLETE — '$($sol.UniqueName)'`r`n")
+            }
+            $Script:OutputBox.SelectionColor = $Script:C.Text
+            Write-Log "Export+Unpack+Commit $($sol.UniqueName)" $result "SourceControl"
         }
     }); $timer.Start()
 })
@@ -1878,31 +1890,30 @@ $btnSolSyncGH.add_Click({
             $ps.Dispose(); $rs.Dispose()
             $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export → Unpack → AI Summary → Commit → Push"
             if ($result -is [string]) {
-                $col = if ($result -match "❌") { $C.Red } else { $C.Yellow }
-                $Script:OutputBox.SelectionColor = $col
-                $Script:OutputBox.AppendText("$result`r`n")
-                $Script:OutputBox.SelectionColor = $C.Text
+                $Script:OutputBox.SelectionColor = $Script:C.Red
+                $Script:OutputBox.AppendText("❌ Sync FAILED: $result`r`n")
+                $Script:OutputBox.SelectionColor = $Script:C.Text
                 return
             }
-            $Script:OutputBox.SelectionColor = $C.Green
+            $Script:OutputBox.SelectionColor = $Script:C.Green
             $Script:OutputBox.AppendText("✅ Synced '$($result.SolName)' to GitHub`r`n")
-            $Script:OutputBox.SelectionColor = $C.Yellow
+            $Script:OutputBox.SelectionColor = $Script:C.Sky
             $Script:OutputBox.AppendText("📊 Changes:`r`n$($result.Stat)`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
+            $Script:OutputBox.SelectionColor = $Script:C.Text
             # AI summary
             if ($null -ne $aiCfg -and $aiCfg.Provider -ne "clipboard") {
                 $Script:OutputBox.AppendText("🤖 Generating AI summary...`r`n")
                 $prompt = "Summarize the following Power Platform solution changes in plain English for a non-developer. Focus on what components changed and what it might mean business-wise.`r`n`r`n$($result.Stat)`r`n`r`nFirst 4000 chars of diff:`r`n$($result.Full.Substring(0, [Math]::Min(4000,$result.Full.Length)))"
                 $aiResult = Invoke-AiRequest $prompt
-                $Script:OutputBox.SelectionColor = $C.Mauve
+                $Script:OutputBox.SelectionColor = $Script:C.Mauve
                 $Script:OutputBox.AppendText("🤖 AI Summary:`r`n$aiResult`r`n")
-                $Script:OutputBox.SelectionColor = $C.Text
+                $Script:OutputBox.SelectionColor = $Script:C.Text
             } else {
                 $clipText = "I just synced a Power Platform solution. Here are the changes:`r`n$($result.Stat)`r`n`r`nPlease summarise what changed in plain English for a non-developer."
                 [System.Windows.Forms.Clipboard]::SetText($clipText)
-                $Script:OutputBox.SelectionColor = $C.Teal
+                $Script:OutputBox.SelectionColor = $Script:C.Teal
                 $Script:OutputBox.AppendText("📋 Summary prompt copied to clipboard — paste into your AI chat for a plain-English explanation.`r`n")
-                $Script:OutputBox.SelectionColor = $C.Text
+                $Script:OutputBox.SelectionColor = $Script:C.Text
             }
         }
     }); $timer.Start()
@@ -2079,22 +2090,22 @@ $btnDisposableCreate.add_Click({
             $btnDisposableCreate.Enabled = $true
             $btnDisposableCreate.Text    = "🧪  Create Environment · Apply Variables · Deploy Solution  (AI-powered)"
             if ($res -is [string]) {
-                $Script:OutputBox.SelectionColor = $C.Red; $Script:OutputBox.AppendText("$res`r`n"); $Script:OutputBox.SelectionColor = $C.Text; return
+                $Script:OutputBox.SelectionColor = $Script:C.Red; $Script:OutputBox.AppendText("❌ Env creation FAILED: $res`r`n"); $Script:OutputBox.SelectionColor = $Script:C.Text; return
             }
-            $Script:OutputBox.SelectionColor = $C.Green
+            $Script:OutputBox.SelectionColor = $Script:C.Green
             $Script:OutputBox.AppendText("✅ Environment ready: $($res.Url)`r`n")
             if ($res.EnvVars) { $Script:OutputBox.AppendText("🔧 $($res.EnvVars)`r`n") }
             if ($res.Deploy)  { $Script:OutputBox.AppendText("📦 Deploy: $($res.Deploy)`r`n") }
-            $Script:OutputBox.SelectionColor = $C.Text
+            $Script:OutputBox.SelectionColor = $Script:C.Text
             # Track in list
             $entry = [PSCustomObject]@{ Name=$res.Name; Url=$res.Url }
             $null  = $Script:DisposableEnvs.Add($entry)
             $lstDisposableEnvs.Items.Add("$($res.Name)  [$($res.Url)]") | Out-Null
             # AI summary
             $aiSummary = Invoke-AiRequest $res.AiPrompt
-            $Script:OutputBox.SelectionColor = $C.Mauve
+            $Script:OutputBox.SelectionColor = $Script:C.Mauve
             $Script:OutputBox.AppendText("🤖 $aiSummary`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
+            $Script:OutputBox.SelectionColor = $Script:C.Text
             # Update top env combo
             Load-Environments
         }
@@ -2191,12 +2202,19 @@ $btnRunChecker.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) | Out-String } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $col = if ($result -match "error|critical" -and $result -notmatch "0 error") { $C.Red } elseif ($result -match "warning") { $C.Peach } else { $C.Green }
-            $Script:OutputBox.SelectionColor = $col
-            $Script:OutputBox.AppendText("$result`r`nReport saved to: $outDir`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
-            Write-Log "Solution Checker" $result "CodeReview"
             $btnRunChecker.Enabled = $true; $btnRunChecker.Text = "🔍 Run Solution Checker"
+            if ($result -match "error|critical" -and $result -notmatch "0 error") {
+                $Script:OutputBox.SelectionColor = $Script:C.Red
+                $Script:OutputBox.AppendText("❌ Solution Checker found critical issues — review report at: $outDir`r`n")
+            } elseif ($result -match "warning") {
+                $Script:OutputBox.SelectionColor = $Script:C.Peach
+                $Script:OutputBox.AppendText("⚠ Solution Checker complete — warnings found. Report: $outDir`r`n")
+            } else {
+                $Script:OutputBox.SelectionColor = $Script:C.Green
+                $Script:OutputBox.AppendText("✅ Solution Checker PASSED — Report saved to: $outDir`r`n")
+            }
+            $Script:OutputBox.SelectionColor = $Script:C.Text
+            Write-Log "Solution Checker" $result "CodeReview"
         }
     }); $timer.Start()
 })
@@ -2436,11 +2454,11 @@ function Send-AiMessage {
             $reply = try { ($ps.EndInvoke($handle) | Out-String).Trim() } catch { "❌ $($_.Exception.Message)" }
             $ps.Dispose(); $rs.Dispose()
             $null = $Script:AiHistory.Add(@{role="assistant"; content=$reply})
-            $Script:AiChat.SelectionColor = $C.Green
+            $Script:AiChat.SelectionColor = $Script:C.Green
             $Script:AiChat.AppendText("Assistant: $reply`r`n")
-            $Script:AiChat.SelectionColor = $C.Overlay
+            $Script:AiChat.SelectionColor = $Script:C.Overlay
             $Script:AiChat.AppendText("─────────────────────────────────────────────`r`n`r`n")
-            $Script:AiChat.SelectionColor = $C.Text
+            $Script:AiChat.SelectionColor = $Script:C.Text
             $Script:AiChat.ScrollToCaret()
             $btnAiSend.Enabled = $true; $btnAiSend.Text = "➤  Send"
         }
