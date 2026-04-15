@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Power Platform Dashboard — GUI for managing Power Platform, SharePoint & Azure DevOps
     without typing long commands.
