@@ -8,6 +8,55 @@
 
 ---
 
+## ⚡ Setup — 2 steps only
+
+### Step 1 — Clone this repo
+
+```
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+```
+
+> **No git?** Ask your AI: *"Clone https://github.com/KayodeAjayi200/power-platform-dashboard into C:\Repositories\Powerapps Stuff"*
+
+---
+
+### Step 2 — Paste this into your AI agent
+
+Open [`SETUP_PROMPT.txt`](./SETUP_PROMPT.txt) from the cloned folder and paste its full contents into any AI agent chat. Or copy from here:
+
+```
+I've cloned the Power Platform Dashboard repository to "C:\Repositories\Powerapps Stuff".
+
+Please read the file at this path:
+  C:\Repositories\Powerapps Stuff\AGENT_SKILL.md
+
+Then follow every setup step in that file using your tool-execution capability.
+
+Rules:
+- Run all install commands automatically — do not ask me to run them
+- Tell me what you are doing at each step
+- Pause and ask me ONLY when a browser login window is needed
+- After everything is installed and configured, launch the dashboard for me
+
+I am on Windows 11. Let's go.
+```
+
+**Done.** Your AI installs all tools, configures MCP servers, handles browser-based authentication, and launches the dashboard. No command line needed.
+
+---
+
+### Works with any AI agent
+
+| AI Agent | How |
+|---|---|
+| **GitHub Copilot** (VS Code / github.com) | Copilot Chat → paste prompt |
+| **Claude** (claude.ai or Claude Desktop) | New conversation → paste prompt |
+| **ChatGPT / OpenAI Codex** | New conversation → upload `SETUP_PROMPT.txt` → *"follow these"* |
+| **Cursor / Windsurf / Cline** | Agent panel → paste prompt |
+| **Any agent with PowerShell tool use** | Paste prompt — it's agent-agnostic |
+
+---
+
 ## What is this?
 
 A **WinForms desktop dashboard** that wraps the entire Power Platform developer toolchain into a point-and-click interface. Designed for teams where some members are not comfortable with the command line.
@@ -26,53 +75,28 @@ A **WinForms desktop dashboard** that wraps the entire Power Platform developer 
 
 ---
 
-## 🤖 Setup via your AI agent (recommended — no command line)
+## 🤝 Sharing with your team
 
-**This is the intended setup path.** You give your AI agent the skill file and it installs everything for you.
+To give a colleague access:
 
-### GitHub Copilot (in VS Code or copilot.github.com)
+1. Send them the link: **https://github.com/KayodeAjayi200/power-platform-dashboard**
+2. Tell them: *"Clone the repo then paste `SETUP_PROMPT.txt` into your AI agent"*
+3. They authenticate their own accounts via browser pop-ups — the AI handles the rest
 
-1. Open a chat with GitHub Copilot
-2. Say:
-
-   > "Read the file at this URL and follow the setup instructions for me:  
-   > `https://raw.githubusercontent.com/KayodeAjayi200/power-platform-dashboard/main/AGENT_SKILL.md`"
-
-3. Copilot will download the skill, run the installer, open browser auth prompts, and launch the dashboard.
+No one needs to touch the command line.
 
 ---
 
-### Claude (claude.ai or Claude Desktop with MCP)
+## 🔧 Manual setup (developers only)
 
-1. Open a new conversation
-2. Paste this message:
-
-   > "Please fetch this URL and follow all setup instructions in the file:  
-   > `https://raw.githubusercontent.com/KayodeAjayi200/power-platform-dashboard/main/AGENT_SKILL.md`  
-   >
-   > Run each step using your computer-use / tool-use capability. Ask me before opening any browser for login."
-
-3. Claude will read `AGENT_SKILL.md`, run PowerShell commands via tool use, and walk you through browser-based authentication.
+```powershell
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+cd "C:\Repositories\Powerapps Stuff"
+pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
+.\Launch-Dashboard.ps1
+```
 
 ---
-
-### OpenAI Codex / ChatGPT with Code Interpreter
-
-1. Download [`AGENT_SKILL.md`](./AGENT_SKILL.md) from this repo
-2. Upload it to a new ChatGPT conversation (paperclip → upload file)
-3. Say:
-
-   > "I'm on Windows 11. Read this file and set up everything it describes. Use your code execution tool to run the PowerShell commands. Pause and ask me when you need me to log in via a browser."
-
----
-
-### Any other AI agent
-
-Just share the raw content of [`AGENT_SKILL.md`](./AGENT_SKILL.md). It is a self-contained, step-by-step instruction set written for AI consumption. Any agent that can run PowerShell commands can complete the setup.
-
----
-
-## 📋 What the AI will install
 
 | Tool | Purpose |
 |---|---|
@@ -133,36 +157,19 @@ The AI agent will ask you for these during setup — you don't need to type any 
 
 ---
 
-## 🔧 Manual setup (for developers)
-
-If you prefer to run the installer yourself:
-
-```powershell
-# Clone the repo
-gh repo clone KayodeAjayi200/power-platform-dashboard "C:\Repositories\Powerapps Stuff"
-cd "C:\Repositories\Powerapps Stuff"
-
-# Run the installer (installs all tools, opens browser login prompts)
-pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
-
-# Launch the dashboard
-.\Launch-Dashboard.ps1
-```
-
----
-
 ## 🏗 Repository structure
 
 ```
 power-platform-dashboard/
+├── SETUP_PROMPT.txt              ← ★ Paste this into any AI to set up everything
+├── AGENT_SKILL.md                ← Step-by-step instructions the AI follows
 ├── Launch-Dashboard.ps1          ← Double-click to start (no terminal needed)
-├── AGENT_SKILL.md                ← Give this to any AI to set up everything
 ├── README.md
 ├── .gitignore
 ├── scripts/
-│   ├── PowerPlatformDashboard.ps1   ← Main WinForms app (2500+ lines)
+│   ├── PowerPlatformDashboard.ps1   ← Main WinForms app (~2500 lines)
 │   ├── Install-PPDashboard.ps1      ← Full toolchain installer
-│   └── mcp-config-template.json    ← MCP server configuration template
+│   └── mcp-config-template.json    ← MCP server config template
 └── alm/
     ├── .github/                     ← GitHub Actions pipeline templates
     ├── pipelines/                   ← Azure DevOps pipeline templates
@@ -172,15 +179,40 @@ power-platform-dashboard/
 
 ---
 
+## 📦 Credentials the AI will ask you for
+
+Your AI agent will pause and ask you for these during setup. You just paste or type the values — no commands needed:
+
+| Credential | Where to find it |
+|---|---|
+| **GitHub Personal Access Token** | github.com → Settings → Developer settings → Fine-grained tokens → New token (scopes: Contents, Pull requests, Issues, Workflows) |
+| **Dataverse connection URL** | Power Automate → My connections → Common Data Service → `···` → Details (copy the full URL with `?apiName=...`) |
+| **Azure DevOps org URL** | `https://dev.azure.com/YOUR_ORG_NAME` |
+| **Copilot Studio MCP URL** *(optional)* | Copilot Studio → Settings → Channels → MCP Client |
+| **AI API key** *(optional)* | Azure OpenAI or Anthropic — skip this to use GitHub Copilot for free |
+
+> Credentials are stored only in `~/.copilot/` on your local machine. They are **never** committed to this repo.
+
+---
+
 ## 🤝 Sharing with your team
 
-To give a colleague access:
+Send a colleague:
+1. The repo link: **https://github.com/KayodeAjayi200/power-platform-dashboard**
+2. The message: *"Clone it, then paste `SETUP_PROMPT.txt` into your AI agent"*
 
-1. Share the link to this repository
-2. Tell them: *"Give the `AGENT_SKILL.md` file to your AI (Copilot, Claude, ChatGPT) and ask it to set everything up"*
-3. They'll need to authenticate their own Power Platform, GitHub, and Azure DevOps accounts via browser pop-ups — the AI handles the rest
+That's the entire handoff. Their AI handles the rest.
 
-No one needs to touch the command line.
+---
+
+## 🔧 Developer / manual install
+
+```powershell
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+cd "C:\Repositories\Powerapps Stuff"
+pwsh -ExecutionPolicy Bypass -File scripts\Install-PPDashboard.ps1
+.\Launch-Dashboard.ps1
+```
 
 ---
 

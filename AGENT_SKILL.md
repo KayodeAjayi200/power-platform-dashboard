@@ -1,9 +1,9 @@
 # AGENT_SKILL: Power Platform Dashboard Setup
 
 > **Instructions for AI agents.**  
-> This file tells you, the AI, exactly how to set up the Power Platform Dashboard on a user's Windows machine.  
+> Users reach this file by pasting the contents of `SETUP_PROMPT.txt` into your chat.  
 > Follow every step in order. Run PowerShell commands using your tool-execution capability.  
-> Ask the user before opening any browser window for authentication.
+> Ask the user **only** before opening browser windows for authentication — run everything else automatically.
 
 ---
 

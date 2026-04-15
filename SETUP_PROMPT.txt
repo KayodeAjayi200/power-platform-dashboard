@@ -1,0 +1,14 @@
+I've cloned the Power Platform Dashboard repository to "C:\Repositories\Powerapps Stuff".
+
+Please read the file at this path:
+  C:\Repositories\Powerapps Stuff\AGENT_SKILL.md
+
+Then follow every setup step in that file using your tool-execution capability (PowerShell / bash / computer use).
+
+Rules:
+- Run all install commands automatically — do not ask me to run them
+- Tell me what you are doing at each step
+- Pause and ask me ONLY when a browser login window is needed (for Power Platform, GitHub, or Azure)
+- After everything is installed and configured, launch the dashboard for me
+
+I am on Windows 11. Let's go.
