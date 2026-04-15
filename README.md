@@ -14,16 +14,17 @@
 ### Step 1 — Clone this repo
 
 ```
-git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git
 ```
 
-> **No git?** Ask your AI: *"Clone https://github.com/KayodeAjayi200/power-platform-dashboard into C:\Repositories\Powerapps Stuff"*
+> Clone it anywhere you like — your Desktop, Documents, wherever is convenient.  
+> **No git?** Ask your AI: *"Clone https://github.com/KayodeAjayi200/power-platform-dashboard to my computer"*
 
 ---
 
 ### Step 2 — Paste this into your AI agent
 
-Open [`SETUP_PROMPT.txt`](./SETUP_PROMPT.txt) from the cloned folder and paste its contents into any AI agent (Copilot, Claude, ChatGPT, Cursor, etc.):
+Open [`SETUP_PROMPT.txt`](./SETUP_PROMPT.txt) from the cloned folder, **fill in your folder path** where indicated, then paste it into any AI agent (Copilot, Claude, ChatGPT, Cursor, etc.):
 
 ```
 I've cloned the Power Platform Dashboard repository to "C:\Repositories\Powerapps Stuff".

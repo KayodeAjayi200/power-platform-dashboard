@@ -1,7 +1,7 @@
-I've cloned the Power Platform Dashboard repository to "C:\Repositories\Powerapps Stuff".
+I've cloned the Power Platform Dashboard repository. The folder is at:
+  [REPLACE WITH YOUR FOLDER PATH — e.g. C:\Users\YourName\Documents\power-platform-dashboard]
 
-Please read the file at this path:
-  C:\Repositories\Powerapps Stuff\AGENT_SKILL.md
+Please find and read the AGENT_SKILL.md file inside that folder.
 
 Then follow every setup step in that file using your tool-execution capability (PowerShell / bash / computer use).
 

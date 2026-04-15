@@ -97,5 +97,4 @@ Read the relevant skill file before writing any code or formulas.
 
 **URL:** https://github.com/KayodeAjayi200/power-platform-dashboard  
 **Default branch:** master  
-**Owner:** KayodeAjayi200 (org: Veldarr)  
-**User environment:** `https://org273306d6.crm11.dynamics.com/` ("Kay's Environment")
+**Owner:** KayodeAjayi200 (org: Veldarr)

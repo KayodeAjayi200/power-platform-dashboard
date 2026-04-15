@@ -295,19 +295,24 @@ If `pac env list` returns environments, the setup is complete.
 Install the skills so they appear in the Skills panel (Skills → personal-agents):
 
 ```powershell
+# Detect where this repo lives — works no matter where the user cloned it
+$repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+# Fallback: if the above doesn't resolve, use the current directory
+if (-not (Test-Path "$repoRoot\AGENT_SKILL.md")) { $repoRoot = $PWD.Path }
+
 $skillsBase = "$env:USERPROFILE\.agents\skills"
 New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas" | Out-Null
 New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas-design" | Out-Null
 New-Item -ItemType Directory -Force -Path "$skillsBase\power-platform-dashboard" | Out-Null
 
-Copy-Item "C:\Repositories\Powerapps Stuff\skills\PowerApps-Canvas-Skill.md" `
+Copy-Item "$repoRoot\skills\PowerApps-Canvas-Skill.md" `
           "$skillsBase\powerapps-canvas\SKILL.md" -Force
-Copy-Item "C:\Repositories\Powerapps Stuff\skills\PowerApps-Canvas-Design-Skill.md" `
+Copy-Item "$repoRoot\skills\PowerApps-Canvas-Design-Skill.md" `
           "$skillsBase\powerapps-canvas-design\SKILL.md" -Force
-Copy-Item "C:\Repositories\Powerapps Stuff\AGENT_SKILL.md" `
+Copy-Item "$repoRoot\AGENT_SKILL.md" `
           "$skillsBase\power-platform-dashboard\SKILL.md" -Force
 
-Write-Host "✅ Skills installed — refresh the Skills panel in the Copilot app"
+Write-Host "✅ Skills installed from $repoRoot — refresh the Skills panel in the Copilot app"
 ```
 
 Tell the user to click the 🔄 icon in the Skills panel to see **powerapps-canvas** and **power-platform-dashboard** appear.
@@ -317,11 +322,12 @@ Tell the user to click the 🔄 icon in the Skills panel to see **powerapps-canv
 ## Step 10 — Launch the dashboard
 
 ```powershell
-Set-Location "C:\Repositories\Powerapps Stuff"
+# Navigate to wherever the user cloned the repo, then launch
+Set-Location $repoRoot
 .\Launch-Dashboard.ps1
 ```
 
-Or tell the user to double-click `Launch-Dashboard.ps1` in File Explorer and choose "Run with PowerShell".
+Or tell the user to find `Launch-Dashboard.ps1` in their cloned folder, right-click it, and choose **"Run with PowerShell"**.
 
 ---
 
