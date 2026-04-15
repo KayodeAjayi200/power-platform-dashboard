@@ -561,3 +561,93 @@ Delegation = data source processes the query server-side (handles large data).
 - ❌ **Not delegable:** `CountRows` on Dataverse, `ForAll`, most text functions inside `Filter`, `GroupBy`
 
 When not delegable, Power Apps fetches up to **500 records** (max 2000 via setting) locally. For large data, check the blue delegation warning in the formula bar and redesign the query or use server-side views.
+
+---
+
+## AI Code Generation — Canvas App Authoring MCP
+
+> **Preview feature** (as of 2025). Lets AI tools like GitHub Copilot CLI and Claude Code create and edit canvas apps by generating `.pa.yaml` files and syncing them to a live Power Apps Studio coauthoring session.
+>
+> Official docs: https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/create-canvas-external-tools
+
+### Prerequisites
+
+| Requirement | Minimum | How to install |
+|---|---|---|
+| .NET SDK | **10.0** | `winget install --id Microsoft.DotNet.SDK.10 --silent` |
+| GitHub Copilot CLI / Claude Code | Latest | `gh extension install github/gh-copilot` |
+| Power Apps Studio | Any | Open app with **coauthoring enabled** (Settings → Updates → Coauthoring) |
+
+### Install the Canvas Apps Plugin
+
+Run these two commands inside GitHub Copilot CLI or Claude Code:
+
+```
+/plugin marketplace add microsoft/power-platform-skills
+/plugin install canvas-apps@power-platform-skills
+```
+
+### Configure the Canvas MCP Server
+
+1. Open your canvas app in Power Apps Studio — enable coauthoring if not already on.
+2. Copy the full URL from the browser address bar.
+3. In your AI tool, run:
+   ```
+   /configure-canvas-mcp
+   ```
+4. Paste the Power Apps Studio URL when prompted. The tool auto-extracts environment ID, app ID, and cluster.
+
+### Available Skills / Commands
+
+| Command | What it does |
+|---|---|
+| `/generate-canvas-app` | Create a new canvas app from a natural language description |
+| `/edit-canvas-app` | Edit an existing app; syncs current state from coauthoring session first |
+| `/configure-canvas-mcp` | Register the canvas app authoring MCP server with your AI tool |
+
+### Create a New App — Workflow
+
+1. **Describe** what you want:
+   - "Create a canvas app for tracking inventory with a searchable list and detail view"
+   - "Build a multi-step employee onboarding form with approval workflow"
+   - "Make a dashboard showing sales metrics with charts and KPIs"
+   - Attach an image or mockup to guide theming/layout
+2. **Answer clarifying questions** — the AI discovers available controls and data sources via MCP.
+3. **Review** — the AI generates `.pa.yaml` files per screen and validates them automatically.
+4. **Test in Studio** — open Power Apps Studio; changes sync via the coauthoring session.
+5. **Iterate** — describe further changes in natural language; repeat.
+
+### Edit an Existing App — Workflow
+
+1. Say: `"I want to edit my expense tracking canvas app"` — the tool syncs all current screens.
+2. Describe changes:
+   - "Add a filter to show only pending expenses"
+   - "Change the home screen to a card-based grid layout"
+   - "Add a new screen for expense history with charts"
+3. AI generates updated `.pa.yaml` files, validates, and syncs.
+
+### Revert Changes
+
+If recent AI-generated changes break the app:
+```
+"The recent changes broke the app. Please revert to the last working version."
+```
+The AI syncs current state → identifies your changes → restores previous code → validates and resyncs.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Changes don't appear in Studio | Verify MCP connection (ask AI to list available controls); ensure coauthoring is on |
+| MCP server not responding | Run `dotnet --version` — must be 10.0+; re-run `/configure-canvas-mcp` with fresh URL |
+| Plugin install fails | Ensure you are inside GitHub Copilot CLI or Claude Code session |
+
+### Best Practices
+
+- **Start simple** — build basic structure first, then iterate to add complexity
+- **Be specific** — detailed natural language prompts produce better initial code
+- **Test frequently** — preview in Studio after each significant change
+- **Bold design choices** — describe visual style and layout direction explicitly; don't accept generic defaults
+- **Validate generated code** — always review `.pa.yaml` files for org compliance before publishing
+
+> ⚠️ AI code generation makes a best-effort attempt at production-ready, accessible, secure code — but **you are responsible** for final review and validation.

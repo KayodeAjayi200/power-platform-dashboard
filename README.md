@@ -69,6 +69,8 @@ A **WinForms desktop dashboard** wrapping the entire Power Platform developer to
 | Sync solutions to GitHub with AI summaries | Select repo → click sync → AI explains what changed |
 | Deploy between environments | Visual source→target picker with managed/unmanaged toggle |
 | Create disposable test environments | Name it, pick a region, deploy a solution — fully automated |
+| **Generate canvas apps with AI** | Use `/generate-canvas-app` in Copilot CLI — AI produces `.pa.yaml` files, validates, syncs to Studio |
+| **Edit canvas apps with AI** | Use `/edit-canvas-app` — describe changes in natural language, AI patches your app live |
 | Rename canvas app controls with AI | Unpack `.msapp` → AI suggests camelCase names → repack |
 | Run ALM pipelines (Azure DevOps & GitHub Actions) | Click-to-trigger with live log streaming |
 | Query Dataverse, SharePoint, GitHub via AI | MCP-powered AI assistant with 9 connected live tools |

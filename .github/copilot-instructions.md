@@ -37,7 +37,7 @@ Read the relevant skill file before writing any code or formulas.
 - **Language:** PowerShell 5.1 (WinForms GUI) + Power Fx (canvas apps)
 - **UI framework:** `System.Windows.Forms` (.NET 4.x via PowerShell 5.1)
 - **CLI tools used:** `pac` (Power Platform CLI), `gh` (GitHub CLI), `git`, `az` (Azure CLI), `m365` (PnP CLI)
-- **MCP servers:** Dataverse MCP, Canvas MCP, Copilot Studio MCP, GitHub MCP, Azure DevOps MCP, Filesystem MCP
+- **MCP servers:** Dataverse MCP, Canvas MCP, Canvas Authoring MCP (for AI code gen), Copilot Studio MCP, GitHub MCP, Azure DevOps MCP, Filesystem MCP
 - **Color palette:** Catppuccin Mocha — keys: `Base`, `Mantle`, `Surface`, `Overlay`, `Text`, `Subtext`, `Blue`, `Green`, `Peach`, `Red`, `Teal`, `Mauve`, `Sky`, `Panel`
 
 ---
@@ -81,8 +81,10 @@ Read the relevant skill file before writing any code or formulas.
 | "Deploy to Test" | Deploy tab → select envs → deploy |
 | "Create a test environment" | ALM Tools tab → Disposable Environments |
 | "Build a canvas app form" | Read `skills/PowerApps-Canvas-Skill.md` first, then write Power Fx |
+| "Generate a canvas app for me" | Use `/generate-canvas-app` in Copilot CLI — requires Step 3b setup in `AGENT_SKILL.md` |
+| "Edit my canvas app" | Use `/edit-canvas-app` in Copilot CLI — ensure coauthoring is on in Power Apps Studio |
 | "Add a new MCP server" | Update `.mcp.json` + update `AGENT_SKILL.md` Step 4 |
-| "Set up on a new machine" | Follow `AGENT_SKILL.md` steps 1–9 in order |
+| "Set up on a new machine" | Follow `AGENT_SKILL.md` steps 1–11 in order |
 
 ---
 

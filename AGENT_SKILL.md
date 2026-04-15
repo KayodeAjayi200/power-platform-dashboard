@@ -53,6 +53,11 @@ winget install --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --acc
 winget install --id Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
 ```
 
+### .NET 10 SDK (required for Canvas App Authoring MCP)
+```powershell
+winget install --id Microsoft.DotNet.SDK.10 --silent --accept-package-agreements --accept-source-agreements
+```
+
 ### Git
 ```powershell
 winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
@@ -108,7 +113,39 @@ dotnet tool update -g Microsoft.PowerPlatform.Canvas.MCP
 
 ---
 
-## Step 4 — Install npm MCP servers
+## Step 3b — Install Canvas App Authoring plugin (AI code generation)
+
+> This enables AI tools (GitHub Copilot CLI, Claude Code) to generate and edit canvas apps from natural language by producing `.pa.yaml` files synced to a live Power Apps Studio session.
+>
+> **Official docs:** https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/create-canvas-external-tools
+
+Run both commands **inside GitHub Copilot CLI** (or Claude Code):
+
+```
+/plugin marketplace add microsoft/power-platform-skills
+/plugin install canvas-apps@power-platform-skills
+```
+
+After installing, configure the MCP server before first use:
+
+1. Open your canvas app in Power Apps Studio.
+2. Enable coauthoring: **Settings → Updates → Coauthoring** (toggle on).
+3. Copy the full browser URL of your open app.
+4. In Copilot CLI or Claude Code, run:
+   ```
+   /configure-canvas-mcp
+   ```
+5. Paste the Power Apps Studio URL when prompted.
+
+**Available commands after setup:**
+
+| Command | What it does |
+|---|---|
+| `/generate-canvas-app` | Create a new canvas app from a description |
+| `/edit-canvas-app` | Edit an existing app via the coauthoring session |
+| `/configure-canvas-mcp` | Re-configure the MCP server connection |
+
+---
 
 ```powershell
 npm install -g @microsoft/copilot-studio-mcp
@@ -317,6 +354,9 @@ Tell the user to:
 | Solutions tab shows nothing | Select an environment first on the Environments tab |
 | Export→Unpack→Push stuck | Operation has a 5-minute timeout; check Output tab for error details |
 | Skills not showing in Copilot app | Click 🔄 in Skills panel; verify files exist in `~\.agents\skills\` |
+| Canvas MCP not responding | Run `dotnet --version` — must be **10.0+**; re-run `/configure-canvas-mcp` with fresh Studio URL |
+| `/plugin install` command not found | Command only works inside GitHub Copilot CLI or Claude Code — not in a regular terminal |
+| Changes not appearing in Studio | Ensure coauthoring is enabled (Settings → Updates → Coauthoring) and Studio session is still active |
 
 ---
 
@@ -331,6 +371,8 @@ Once everything is installed, the user can ask their AI agent:
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
 | "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
 | "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
+| "Build me a canvas app for expense tracking" | Use `/generate-canvas-app` in Copilot CLI — see Step 3b for setup |
+| "Add a filter panel to my canvas app" | Use `/edit-canvas-app` in Copilot CLI; describe the change in natural language |
 | "Add the dashboard tools to a new colleague's machine" | Share this repo URL + tell them to give `AGENT_SKILL.md` to their AI |
 
 ---
