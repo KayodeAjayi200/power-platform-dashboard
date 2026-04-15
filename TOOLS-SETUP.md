@@ -839,25 +839,45 @@ A Windows Forms GUI is included so you can manage Power Platform, SharePoint, an
 
 ### Launch it
 
+Choose one of these options — they all do the same thing:
+
+**Option 1 — Desktop shortcut (recommended, one-time setup):**
+```powershell
+cd "C:\Repositories\Powerapps Stuff"
+.\Create-Shortcut.ps1
+```
+This creates **"Power Platform Dashboard"** on your Desktop. Double-click it any time. To pin to the taskbar: right-click the Desktop icon → "Pin to taskbar".
+
+**Option 2 — Double-click the batch file:**
+Open the repo folder in Explorer and double-click `Launch-Dashboard.bat`. No PowerShell window needed.
+
+**Option 3 — PowerShell direct:**
 ```powershell
 cd "C:\Repositories\Powerapps Stuff"
 .\Launch-Dashboard.ps1
 ```
 
-Or open PowerShell directly to the scripts folder:
-```powershell
-pwsh -ExecutionPolicy Bypass -File "C:\Repositories\Powerapps Stuff\scripts\PowerPlatformDashboard.ps1"
-```
+### Dashboard appearance
+
+- **Theme:** Power Apps Fluent light theme — purple header bar, white/light content areas, dark console output
+- **Responsive:** The window is resizable (minimum 800 × 650 pixels). Tabs and the output panel grow with the window.
+- **Font:** Segoe UI throughout; Cascadia Code in the output console
 
 ### What's in each tab
 
 | Tab | What you can do |
 |---|---|
-| **🌍 Environments** | Switch Dataverse environment, open Admin Centre, check auth, list users/roles |
-| **📦 Solutions** | List/export/import solutions, list canvas apps, flows, tables, plugins |
-| **🟠 SharePoint** | Connect to sites, list lists/libraries/files, manage Teams/channels |
-| **🔵 Azure DevOps** | List/create work items, manage PRs, list pipelines, trigger runs |
-| **🔌 MCP Servers** | View all registered MCP servers, remove servers |
+| **🌐 Environments** | List/switch Power Platform environments, open Admin Centre, check auth, view users and roles |
+| **📦 Solutions** | Export, import, list, and sync solutions to GitHub with an AI-written summary of what changed |
+| **🚀 Deploy** | Deploy solutions between environments — including cross-tenant |
+| **🔧 ALM Tools** | Create disposable test environments, run Azure DevOps and GitHub Actions ALM pipelines |
+| **🎨 Canvas** | Canvas app operations via Canvas MCP — list, open, and edit canvas apps |
+| **🤖 Copilot Studio** | Manage and test Copilot Studio agents |
+| **📊 Dataverse** | Query and update Dataverse tables using the Dataverse MCP |
+| **🔗 SharePoint** | SharePoint site and list management via m365 CLI |
+| **📋 Power Automate** | List and manage Power Automate flows |
+| **⚙️ Settings** | GitHub PAT, Dataverse URL, Azure DevOps config, AI provider (Azure OpenAI or Claude) |
+| **📝 Output** | Live log of every action — copy it to paste into Copilot for AI-assisted follow-up |
 
 ### How Copilot sees your actions
 

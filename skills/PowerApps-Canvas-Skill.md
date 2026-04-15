@@ -43,6 +43,29 @@ Set(RecentExpenses, FirstN(Sort(Expenses, Modified, SortOrder.Descending), 10))
 
 ---
 
+## 🚨 Layout Rule — Always Use Containers
+
+> **Before building any screen, read `skills/PowerApps-Canvas-Design-Skill.md`.**
+
+**Never position controls on a screen using absolute X/Y coordinates. Always use Horizontal and Vertical Containers.** Containers make apps responsive, reusable, and easy to maintain.
+
+- **Vertical Container** — stacks things top-to-bottom (page structure, sidebars, forms)
+- **Horizontal Container** — places things side-by-side (nav bars, icon+label rows, button groups)
+- **Nest them** — a Horizontal Container can contain Vertical Containers for complex layouts
+
+Every screen structure should look like this:
+```
+Screen
+└── VerticalContainer (full screen)
+    ├── HorizontalContainer  ← header
+    ├── HorizontalContainer  ← body (contains side nav + main content)
+    └── HorizontalContainer  ← footer (optional)
+```
+
+For the full set of container properties, responsive patterns, and design rules → see `skills/PowerApps-Canvas-Design-Skill.md`.
+
+---
+
 ## Quick orientation
 
 | Concept | What it is |

@@ -61,7 +61,7 @@ I am on Windows 11. Let's go.
 
 ## What it does
 
-A **WinForms desktop dashboard** wrapping the entire Power Platform developer toolchain into a point-and-click interface. Built for teams where not everyone is comfortable with the command line.
+A **WinForms desktop dashboard** wrapping the entire Power Platform developer toolchain into a point-and-click interface. Built for teams where not everyone is comfortable with the command line. Designed to look and feel like Power Apps Studio — light theme, purple header, responsive layout that adjusts to any window size.
 
 | Feature | How it works |
 |---|---|

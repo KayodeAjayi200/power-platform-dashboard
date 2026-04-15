@@ -9,7 +9,9 @@ This repository contains the **Power Platform Dashboard** — a WinForms PowerSh
 | Path | What it is |
 |---|---|
 | `scripts/PowerPlatformDashboard.ps1` | Main dashboard (~2800 lines, 11 WinForms tabs) |
-| `Launch-Dashboard.ps1` | One-click launcher |
+| `Launch-Dashboard.bat` | Double-click to open the dashboard (no terminal needed) |
+| `Create-Shortcut.ps1` | Run once to create a pinnable Desktop shortcut |
+| `Launch-Dashboard.ps1` | PowerShell launcher (right-click → Run with PowerShell) |
 | `AGENT_SKILL.md` | Full setup guide for AI agents — read this to onboard a new machine |
 | `SETUP_PROMPT.txt` | One-paste onboarding text for users to give to their AI |
 | `TOOLS-SETUP.md` | Manual setup reference for humans |
@@ -53,6 +55,7 @@ Read the relevant skill file before writing any code or formulas.
   # Ask Power Platform for a list of all environments the user has access to
   $envs = pac env list --output json | ConvertFrom-Json
   ```
+- **Canvas app layout** — ALWAYS use Horizontal and Vertical Containers for every screen. Never use absolute X/Y positions. See `skills/PowerApps-Canvas-Design-Skill.md` for the full rule and patterns.
 - **Script-scope variables for timers** — WinForms timer variables in click handlers must be stored as `$Script:TimerName` (not local `$timer`) to prevent PowerShell garbage-collecting them
 - **No `pac solution list-component`** — that command does not exist. Use export+zip+solution.xml parsing instead
 - **Color palette** — `$Script:C` hashtable; valid keys: `Base`, `Mantle`, `Surface`, `Overlay`, `Text`, `Subtext`, `Blue`, `Green`, `Peach`, `Red`, `Teal`, `Mauve`, `Sky`, `Panel`, `Console`; no "Yellow"; `Console` is for text inside the dark output box
@@ -86,6 +89,7 @@ Read the relevant skill file before writing any code or formulas.
 | "Deploy to Test" | Deploy tab → select envs → deploy |
 | "Create a test environment" | ALM Tools tab → Disposable Environments |
 | "Build a canvas app form" | Read `skills/PowerApps-Canvas-Skill.md` first, then write Power Fx |
+| "Design a canvas app screen / layout" | Read `skills/PowerApps-Canvas-Design-Skill.md` first — use containers, never absolute X/Y |
 | "Generate a canvas app for me" | Read `skills/PowerApps-Canvas-Skill.md` → install canvas plugin via Step 3b in `AGENT_SKILL.md` → run `/generate-canvas-app` and describe what the user wants |
 | "Edit my canvas app" | Read `skills/PowerApps-Canvas-Skill.md` → run `/edit-canvas-app` → describe the change; ensure coauthoring is on in Power Apps Studio |
 | "Add a new MCP server" | Update `.mcp.json` + update `AGENT_SKILL.md` Step 4 |
