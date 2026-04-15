@@ -289,6 +289,10 @@ $Script:cboSolutions.Add_SelectedIndexChanged({
     if ($Script:cboSolutions.SelectedIndex -ge 0 -and $Script:Solutions) {
         $sol = $Script:Solutions[$Script:cboSolutions.SelectedIndex]
         $txtSolName.Text = $sol.UniqueName
+        $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
+        $Script:OutputBox.SelectionColor = $Script:C.Sky
+        $Script:OutputBox.AppendText("💡 Selected: '$($sol.FriendlyName)' [$($sol.UniqueName)] — click 📋 Load Components to inspect`r`n")
+        $Script:OutputBox.SelectionColor = $Script:C.Text
     }
 })
 $tabSol.Controls.Add($Script:cboSolutions)
@@ -303,29 +307,45 @@ $tabSol.Controls.Add($txtExportPath)
 $btnBrowse = New-Btn "📁" 418 127 40 24
 $tabSol.Controls.Add($btnBrowse)
 
-Divider "Canvas Apps & Flows" 8 163 830 $tabSol
-$btnListApps    = New-Btn "📱 Canvas Apps"   8   189 150
-$btnListFlows   = New-Btn "⚡ Cloud Flows"   168 189 150
-$btnListPages   = New-Btn "📄 Pages"         328 189 130
-$btnListConnections = New-Btn "🔗 Connections" 468 189 140
-$tabSol.Controls.Add($btnListApps)
-$tabSol.Controls.Add($btnListFlows)
-$tabSol.Controls.Add($btnListPages)
-$tabSol.Controls.Add($btnListConnections)
+Divider "📋 Solution Components" 8 163 830 $tabSol
+$btnLoadComponents = New-Btn "📋 Load Components" 8 186 170 26 $C.Teal
+$tabSol.Controls.Add($btnLoadComponents)
+$tabSol.Controls.Add((New-Lbl "Filter:" 188 191 42 18 $C.Subtext))
+$txtCompFilter = New-Txt "" 230 188 170
+$tabSol.Controls.Add($txtCompFilter)
+$tabSol.Controls.Add((New-Lbl "Type:" 408 191 42 18 $C.Subtext))
+$cboCompType = New-Combo @("All Types","Canvas App","Cloud Flow","Table","Column","View","Web Resource","Plugin","Model-driven App","Copilot","Environment Variable","Other") 450 188 160
+$tabSol.Controls.Add($cboCompType)
+$btnOpenInPortal = New-Btn "🌐 Open in Portal" 622 186 165 26 $C.Blue
+$tabSol.Controls.Add($btnOpenInPortal)
 
-Divider "Dataverse" 8 201 830 $tabSol
-$btnListTables  = New-Btn "🗃 Tables"        8   227 130
-$btnListCols    = New-Btn "📊 Columns"       148 227 130
-$btnListViews   = New-Btn "👁 Views"         288 227 120
-$btnListPlugins = New-Btn "🔌 Plugins"       418 227 130
-$tabSol.Controls.Add($btnListTables)
-$tabSol.Controls.Add($btnListCols)
-$tabSol.Controls.Add($btnListViews)
-$tabSol.Controls.Add($btnListPlugins)
+$Script:DgComponents = New-Object System.Windows.Forms.DataGridView
+$Script:DgComponents.Location  = [System.Drawing.Point]::new(8, 218)
+$Script:DgComponents.Size      = [System.Drawing.Size]::new(888, 70)
+$Script:DgComponents.BackgroundColor = $C.Surface
+$Script:DgComponents.ForeColor       = $C.Text
+$Script:DgComponents.GridColor       = $C.Overlay
+$Script:DgComponents.BorderStyle     = [System.Windows.Forms.BorderStyle]::None
+$Script:DgComponents.ColumnHeadersDefaultCellStyle.BackColor = $C.Panel
+$Script:DgComponents.ColumnHeadersDefaultCellStyle.ForeColor = $C.Text
+$Script:DgComponents.ColumnHeadersBorderStyle = [System.Windows.Forms.DataGridViewHeaderBorderStyle]::None
+$Script:DgComponents.DefaultCellStyle.BackColor            = $C.Surface
+$Script:DgComponents.DefaultCellStyle.ForeColor            = $C.Text
+$Script:DgComponents.AlternatingRowsDefaultCellStyle.BackColor = $C.Base
+$Script:DgComponents.SelectionMode       = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$Script:DgComponents.ReadOnly            = $true
+$Script:DgComponents.AllowUserToAddRows  = $false
+$Script:DgComponents.RowHeadersVisible   = $false
+$Script:DgComponents.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+$Script:DgComponents.Font                = [System.Drawing.Font]::new("Segoe UI", 8.5)
+$c1 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c1.Name="Type";        $c1.HeaderText="Type";         $c1.FillWeight=18
+$c2 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c2.Name="DisplayName"; $c2.HeaderText="Display Name"; $c2.FillWeight=40
+$c3 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c3.Name="UniqueName";  $c3.HeaderText="Unique Name";  $c3.FillWeight=36
+$c4 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $c4.Name="Root";        $c4.HeaderText="Root";         $c4.FillWeight=6
+$null = $Script:DgComponents.Columns.AddRange($c1, $c2, $c3, $c4)
+$tabSol.Controls.Add($Script:DgComponents)
+$Script:AllComponents = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-$tabSol.Controls.Add((New-Lbl "Table Name (for Columns/Views):" 8 264 280))
-$txtTableName = New-Txt "" 290 261 200
-$tabSol.Controls.Add($txtTableName)
 
 Divider "📤 GitHub / Source Control Sync" 8 293 830 $tabSol
 $tabSol.Controls.Add((New-Lbl "Local repo:" 8 317 80))
@@ -1097,22 +1117,108 @@ $btnImportSol.add_Click({
         Run-Cmd "pac solution import --path `"$fp`"" { pac solution import --path $fp } "Solutions"
     }
 })
-$btnListApps.add_Click({     Run-Cmd "pac canvas list"         { pac canvas list }          "Apps" })
-$btnListFlows.add_Click({    Run-Cmd "m365 flow list"          { m365 flow list }            "Flows" })
-$btnListPages.add_Click({    Run-Cmd "pac pages list"          { pac pages list }            "Pages" })
-$btnListConnections.add_Click({ Run-Cmd "pac connection list"  { pac connection list }       "Connections" })
-$btnListTables.add_Click({   Run-Cmd "pac dataverse list-tables" { pac dataverse list-tables } "Dataverse" })
-$btnListCols.add_Click({
-    $t = $txtTableName.Text.Trim()
-    if (-not $t) { [System.Windows.Forms.MessageBox]::Show("Enter a table name."); return }
-    Run-Cmd "pac dataverse list-columns --table `"$t`"" { pac dataverse list-columns --table $t } "Dataverse"
+# ---- Solution component browser ----
+$filterComp = {
+    $ft = $txtCompFilter.Text.ToLower()
+    $tp = $cboCompType.SelectedItem
+    $Script:DgComponents.Rows.Clear()
+    foreach ($comp in $Script:AllComponents) {
+        $tm = ($tp -eq "All Types" -or $comp.Type -eq $tp)
+        $tx = ($ft -eq "" -or $comp.DisplayName.ToLower() -like "*$ft*" -or $comp.UniqueName.ToLower() -like "*$ft*")
+        if ($tm -and $tx) { $null = $Script:DgComponents.Rows.Add($comp.Type, $comp.DisplayName, $comp.UniqueName, $comp.Root) }
+    }
+}
+$txtCompFilter.add_TextChanged($filterComp)
+$cboCompType.add_SelectedIndexChanged($filterComp)
+
+$btnOpenInPortal.add_Click({
+    $idx = $cboTopEnv.SelectedIndex
+    $url = if ($idx -ge 0 -and $Script:Environments.Count -gt $idx -and $Script:Environments[$idx].Id) {
+        "https://make.powerapps.com/environments/$($Script:Environments[$idx].Id)/solutions"
+    } else { "https://make.powerapps.com" }
+    Start-Process $url
 })
-$btnListViews.add_Click({
-    $t = $txtTableName.Text.Trim()
-    if (-not $t) { [System.Windows.Forms.MessageBox]::Show("Enter a table name."); return }
-    Run-Cmd "m365 pp dataverse table row list --tableName `"$t`"" { m365 pp dataverse table get --name $t } "Dataverse"
+
+$Script:CompTypeMap = @{
+    '1'='Table'; '2'='Column'; '3'='Relationship'; '9'='Entity Relationship';
+    '10'='Intersect Entity'; '14'='Duplicate Rule'; '16'='System Form'; '24'='Connection Role';
+    '26'='Canvas App'; '29'='Cloud Flow'; '33'='View'; '44'='Chart'; '59'='Site Map';
+    '60'='Form'; '61'='View'; '62'='Chart'; '66'='Connection Role';
+    '70'='Field Permission'; '71'='Field Security Profile';
+    '80'='Web Resource'; '90'='Plugin Assembly'; '91'='SDK Step'; '92'='SDK Step Image';
+    '95'='Service Endpoint'; '154'='Business Process Flow';
+    '300'='Model-driven App'; '371'='Page'; '380'='Flow Machine';
+    '400'='AI Builder Model'; '430'='Copilot'; '431'='Copilot Subcomponent';
+    '10028'='Connection Reference'; '10029'='Connector';
+    '10057'='Environment Variable'; '10058'='Env Variable Value';
+}
+
+$btnLoadComponents.add_Click({
+    $solName = $txtSolName.Text.Trim()
+    if (-not $solName -and $Script:cboSolutions.SelectedIndex -ge 0 -and $Script:Solutions) {
+        $solName = $Script:Solutions[$Script:cboSolutions.SelectedIndex].UniqueName
+    }
+    if (-not $solName) { [System.Windows.Forms.MessageBox]::Show("Select a solution first (click 'List Solutions' then pick one)."); return }
+
+    $btnLoadComponents.Enabled = $false; $btnLoadComponents.Text = "⏳ Loading..."
+    $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
+    $Script:OutputBox.AppendText("`r`n📋 Loading components for '$solName'...`r`n")
+
+    $logQ   = $Script:LogQueue
+    $typeMap = $Script:CompTypeMap
+    $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState="STA"; $rs.ThreadOptions="ReuseThread"; $rs.Open()
+    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $null = $ps.AddScript({
+        param($solName, $logQ, $typeMap)
+        $logQ.Enqueue("⚙️ pac solution list-component --solution-name '$solName'")
+        $raw = pac solution list-component --solution-name $solName 2>&1 | Out-String
+
+        $components = [System.Collections.Generic.List[hashtable]]::new()
+        $lines = ($raw -split "`r?`n") | Where-Object { $_.Trim() -ne "" }
+        $pastHeader = $false
+
+        foreach ($line in $lines) {
+            if ($line -match '^[\s\-─=]+$') { $pastHeader = $true; continue }
+            if (-not $pastHeader) { continue }
+            # Format: TypeNum  ObjectGuid  RootBehavior  SchemaName
+            if ($line -match '^\s*(\d+)\s+([0-9a-fA-F-]{36})\s+(\d*)\s*(.*)$') {
+                $tn = $matches[1].Trim(); $root = $matches[3].Trim(); $name = $matches[4].Trim()
+                $tp = if ($typeMap.ContainsKey($tn)) { $typeMap[$tn] } else { "Type $tn" }
+                $components.Add(@{Type=$tp; DisplayName=$name; UniqueName=$name; Root=$root})
+            } elseif ($line -match '^\s*(\d+)\s+(.+)$') {
+                $tn = $matches[1].Trim(); $name = $matches[2].Trim()
+                $tp = if ($typeMap.ContainsKey($tn)) { $typeMap[$tn] } else { "Type $tn" }
+                $components.Add(@{Type=$tp; DisplayName=$name; UniqueName=$name; Root=""})
+            }
+        }
+        $logQ.Enqueue("  ✅ $($components.Count) components parsed")
+        return @{ Components=$components; RawOutput=$raw; Count=$components.Count }
+    }).AddParameters(@{solName=$solName; logQ=$logQ; typeMap=$typeMap})
+
+    $handle = $ps.BeginInvoke()
+    $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
+    $timer.add_Tick({
+        if ($handle.IsCompleted) {
+            $timer.Stop(); $timer.Dispose()
+            $res = try { $ps.EndInvoke($handle) } catch { @{Components=@(); RawOutput=$_.Exception.Message; Count=0} }
+            $ps.Dispose(); $rs.Dispose()
+            $btnLoadComponents.Enabled = $true; $btnLoadComponents.Text = "📋 Load Components"
+            if ($res.Count -gt 0) {
+                foreach ($c in $res.Components) {
+                    $null = $Script:AllComponents.Add([PSCustomObject]$c)
+                    $null = $Script:DgComponents.Rows.Add($c.Type, $c.DisplayName, $c.UniqueName, $c.Root)
+                }
+                $Script:OutputBox.SelectionColor = $Script:C.Green
+                $Script:OutputBox.AppendText("✅ $($res.Count) components loaded — use filter/type dropdown to narrow down`r`n")
+                $Script:OutputBox.SelectionColor = $Script:C.Text
+            } else {
+                $Script:OutputBox.SelectionColor = $Script:C.Peach
+                $Script:OutputBox.AppendText("⚠ Could not parse component list. Is the solution name correct?`r`nRaw output:`r`n$($res.RawOutput)`r`n")
+                $Script:OutputBox.SelectionColor = $Script:C.Text
+            }
+        }
+    }); $timer.Start()
 })
-$btnListPlugins.add_Click({ Run-Cmd "pac plugin list" { pac plugin list } "Dataverse" })
 
 # ---- SharePoint ----
 $btnSPConnect.add_Click({
