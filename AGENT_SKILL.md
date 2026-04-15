@@ -260,10 +260,13 @@ Install the skills so they appear in the Skills panel (Skills → personal-agent
 ```powershell
 $skillsBase = "$env:USERPROFILE\.agents\skills"
 New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas" | Out-Null
+New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas-design" | Out-Null
 New-Item -ItemType Directory -Force -Path "$skillsBase\power-platform-dashboard" | Out-Null
 
 Copy-Item "C:\Repositories\Powerapps Stuff\skills\PowerApps-Canvas-Skill.md" `
           "$skillsBase\powerapps-canvas\SKILL.md" -Force
+Copy-Item "C:\Repositories\Powerapps Stuff\skills\PowerApps-Canvas-Design-Skill.md" `
+          "$skillsBase\powerapps-canvas-design\SKILL.md" -Force
 Copy-Item "C:\Repositories\Powerapps Stuff\AGENT_SKILL.md" `
           "$skillsBase\power-platform-dashboard\SKILL.md" -Force
 
@@ -339,6 +342,7 @@ This repo includes reference skill files for common Power Platform topics:
 | File | When to use it |
 |---|---|
 | `skills/PowerApps-Canvas-Skill.md` | Writing or debugging Canvas App controls, Power Fx formulas, components |
+| `skills/PowerApps-Canvas-Design-Skill.md` | UI/UX design — containers, responsive layouts, Fluent UI, gallery cards, filter panels, navigation |
 | `AGENT_SKILL.md` (this file) | Setting up tools, installing MCP servers, onboarding a new machine |
 
 ---

@@ -102,6 +102,7 @@ This repo ships with **agent skill files** — structured reference docs that te
 | Skill | Description |
 |---|---|
 | [`skills/PowerApps-Canvas-Skill.md`](./skills/PowerApps-Canvas-Skill.md) | All ~60 canvas controls, 150+ Power Fx functions, components, common patterns |
+| [`skills/PowerApps-Canvas-Design-Skill.md`](./skills/PowerApps-Canvas-Design-Skill.md) | UI/UX design — containers, responsive layouts, Fluent UI, gallery designs, filter panels, nav menus |
 
 ### Installing skills into the Copilot app
 
@@ -111,10 +112,15 @@ If you use the **GitHub Copilot desktop app**, you can add these as personal age
 # Run this from the repo root after cloning:
 $skillsTarget = "$env:USERPROFILE\.agents\skills"
 
-# Power Apps Canvas skill
+# Power Apps Canvas skill (controls + Power Fx reference)
 $dest = "$skillsTarget\powerapps-canvas"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item "skills\PowerApps-Canvas-Skill.md" "$dest\SKILL.md" -Force
+
+# Power Apps Canvas Design skill (UI/UX, containers, responsive, Fluent UI)
+$dest = "$skillsTarget\powerapps-canvas-design"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item "skills\PowerApps-Canvas-Design-Skill.md" "$dest\SKILL.md" -Force
 
 # Power Platform Dashboard setup skill
 $dest = "$skillsTarget\power-platform-dashboard"

@@ -28,6 +28,7 @@ Read the relevant skill file before writing any code or formulas.
 |---|---|
 | [`AGENT_SKILL.md`](../AGENT_SKILL.md) | Setting up tools, installing MCP servers, onboarding a new machine, configuring the dashboard |
 | [`skills/PowerApps-Canvas-Skill.md`](../skills/PowerApps-Canvas-Skill.md) | Any question about Canvas App controls, Power Fx formulas, components, galleries, forms, collections, AI Builder components |
+| [`skills/PowerApps-Canvas-Design-Skill.md`](../skills/PowerApps-Canvas-Design-Skill.md) | Any question about Canvas App UI/UX design — containers, responsive layouts, Fluent UI controls, themes, gallery card designs, filter panels, navigation menus, micro-interactions |
 
 ---
 
