@@ -827,14 +827,9 @@ cd "C:\Repositories\Powerapps Stuff"
 
 ### Your Available Environments
 
-| Name | URL |
-|---|---|
-| Kay's Environment | `https://org273306d6.crm11.dynamics.com/` |
-| Xhub (default) | `https://org8971e69f.crm11.dynamics.com/` |
-| Xhub | `https://org2fdfd154.crm11.dynamics.com/` |
-| CoE Environment | `https://orgb358554f.crm11.dynamics.com/` |
+Run `pac env list` to see all your environments and their URLs. Use the URL from that output when configuring the Dataverse MCP server.
 
-> Run `pac env list` to see all environments including ALM-Dev/Test/Prod and others.
+> **Example format:** `https://orgXXXXXXXX.crm11.dynamics.com/`
 
 ---
 
