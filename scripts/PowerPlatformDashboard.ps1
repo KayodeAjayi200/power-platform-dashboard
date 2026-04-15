@@ -171,7 +171,7 @@ function Divider {
 # ── FORM ──────────────────────────────────────────────────────────────────────
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = "⚡ Power Platform Dashboard"
-$form.Size            = [System.Drawing.Size]::new(930, 750)
+$form.Size            = [System.Drawing.Size]::new(930, 810)
 $form.MinimumSize     = [System.Drawing.Size]::new(930, 750)
 $form.StartPosition   = "CenterScreen"
 $form.BackColor       = $C.Base
@@ -215,7 +215,7 @@ $titleStrip.Controls.Add($envStatusLbl)
 # ── TABS ──────────────────────────────────────────────────────────────────────
 $tabs = New-Object System.Windows.Forms.TabControl
 $tabs.Location = [System.Drawing.Point]::new(8, 58)
-$tabs.Size     = [System.Drawing.Size]::new(910, 440)
+$tabs.Size     = [System.Drawing.Size]::new(910, 515)
 $tabs.Font     = [System.Drawing.Font]::new("Segoe UI", 9)
 $form.Controls.Add($tabs)
 
@@ -1006,7 +1006,7 @@ $tabAI.Controls.Add($btnAiClear)
 $tabAI.Controls.Add((New-Lbl "Ctrl+Enter to send  •  Configure AI in ⚙️ Settings tab" 8 384 700 18 $C.Overlay))
 
 $outputHeader           = New-Object System.Windows.Forms.Panel
-$outputHeader.Location  = [System.Drawing.Point]::new(8, 500)
+$outputHeader.Location  = [System.Drawing.Point]::new(8, 580)
 $outputHeader.Size      = [System.Drawing.Size]::new(910, 26)
 $outputHeader.BackColor = $C.Panel
 $form.Controls.Add($outputHeader)
@@ -1018,8 +1018,8 @@ $outputHeader.Controls.Add($btnClearOutput)
 $outputHeader.Controls.Add($btnCopyLog)
 
 $Script:OutputBox = New-Object System.Windows.Forms.RichTextBox
-$Script:OutputBox.Location   = [System.Drawing.Point]::new(8, 528)
-$Script:OutputBox.Size       = [System.Drawing.Size]::new(910, 185)
+$Script:OutputBox.Location   = [System.Drawing.Point]::new(8, 608)
+$Script:OutputBox.Size       = [System.Drawing.Size]::new(910, 165)
 $Script:OutputBox.BackColor  = $C.Mantle
 $Script:OutputBox.ForeColor  = $C.Text
 $Script:OutputBox.Font       = [System.Drawing.Font]::new("Cascadia Code", 9)
@@ -2763,6 +2763,7 @@ $form.add_Load({
     Load-Solutions
     Refresh-MCP
     Load-Settings
+    Refresh-GHRepos
 
     # Global log-stream drain timer — reads from $Script:LogQueue every 300ms
     $Script:DrainTimer = New-Object System.Windows.Forms.Timer
