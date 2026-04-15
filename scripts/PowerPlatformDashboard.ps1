@@ -290,9 +290,8 @@ $Script:cboSolutions.Add_SelectedIndexChanged({
         $sol = $Script:Solutions[$Script:cboSolutions.SelectedIndex]
         $txtSolName.Text = $sol.UniqueName
         $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
-        $Script:OutputBox.SelectionColor = $Script:C.Sky
-        $Script:OutputBox.AppendText("💡 Selected: '$($sol.FriendlyName)' [$($sol.UniqueName)] — click 📋 Load Components to inspect`r`n")
-        $Script:OutputBox.SelectionColor = $Script:C.Text
+        Invoke-LoadComponents $sol.UniqueName
+        Refresh-GHCommits
     }
 })
 $tabSol.Controls.Add($Script:cboSolutions)
@@ -308,15 +307,13 @@ $btnBrowse = New-Btn "📁" 418 127 40 24
 $tabSol.Controls.Add($btnBrowse)
 
 Divider "📋 Solution Components" 8 163 830 $tabSol
-$btnLoadComponents = New-Btn "📋 Load Components" 8 186 170 26 $C.Teal
-$tabSol.Controls.Add($btnLoadComponents)
-$tabSol.Controls.Add((New-Lbl "Filter:" 188 191 42 18 $C.Subtext))
-$txtCompFilter = New-Txt "" 230 188 170
+$tabSol.Controls.Add((New-Lbl "Filter:" 8 191 42 18 $C.Subtext))
+$txtCompFilter = New-Txt "" 52 188 200
 $tabSol.Controls.Add($txtCompFilter)
-$tabSol.Controls.Add((New-Lbl "Type:" 408 191 42 18 $C.Subtext))
-$cboCompType = New-Combo @("All Types","Canvas App","Cloud Flow","Table","Column","View","Web Resource","Plugin","Model-driven App","Copilot","Environment Variable","Other") 450 188 160
+$tabSol.Controls.Add((New-Lbl "Type:" 262 191 42 18 $C.Subtext))
+$cboCompType = New-Combo @("All Types","Canvas App","Cloud Flow","Table","Column","View","Web Resource","Plugin","Model-driven App","Copilot","Environment Variable","Other") 304 188 160
 $tabSol.Controls.Add($cboCompType)
-$btnOpenInPortal = New-Btn "🌐 Open in Portal" 622 186 165 26 $C.Blue
+$btnOpenInPortal = New-Btn "🌐 Open in Portal" 472 186 165 26 $C.Blue
 $tabSol.Controls.Add($btnOpenInPortal)
 
 $Script:DgComponents = New-Object System.Windows.Forms.DataGridView
@@ -392,14 +389,34 @@ $btnGHAskAi = New-Btn "🤖 Ask AI" 710 413 104 26 $C.Mauve
 $tabSol.Controls.Add($btnGHAskAi)
 
 $btnSolSyncGH            = New-Object System.Windows.Forms.Button
-$btnSolSyncGH.Text       = "📤  Export from Environment → Unpack → Push to GitHub  (no local folder needed)"
+$btnSolSyncGH.Text       = "📤  Export from Env → Unpack → Push to GitHub"
 $btnSolSyncGH.Location   = [System.Drawing.Point]::new(8, 445)
-$btnSolSyncGH.Size       = [System.Drawing.Size]::new(888, 36)
+$btnSolSyncGH.Size       = [System.Drawing.Size]::new(488, 36)
 $btnSolSyncGH.BackColor  = $C.Mauve
 $btnSolSyncGH.ForeColor  = $C.Base
 $btnSolSyncGH.FlatStyle  = [System.Windows.Forms.FlatStyle]::Flat
 $btnSolSyncGH.Font       = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $tabSol.Controls.Add($btnSolSyncGH)
+
+$btnGHPull               = New-Object System.Windows.Forms.Button
+$btnGHPull.Text          = "📥  Pull from GitHub"
+$btnGHPull.Location      = [System.Drawing.Point]::new(504, 445)
+$btnGHPull.Size          = [System.Drawing.Size]::new(230, 36)
+$btnGHPull.BackColor     = $C.Teal
+$btnGHPull.ForeColor     = $C.Base
+$btnGHPull.FlatStyle     = [System.Windows.Forms.FlatStyle]::Flat
+$btnGHPull.Font          = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$tabSol.Controls.Add($btnGHPull)
+
+$btnGHOpenWS             = New-Object System.Windows.Forms.Button
+$btnGHOpenWS.Text        = "📂  Open Workspace"
+$btnGHOpenWS.Location    = [System.Drawing.Point]::new(742, 445)
+$btnGHOpenWS.Size        = [System.Drawing.Size]::new(154, 36)
+$btnGHOpenWS.BackColor   = $C.Panel
+$btnGHOpenWS.ForeColor   = $C.Text
+$btnGHOpenWS.FlatStyle   = [System.Windows.Forms.FlatStyle]::Flat
+$btnGHOpenWS.Font        = [System.Drawing.Font]::new("Segoe UI", 10)
+$tabSol.Controls.Add($btnGHOpenWS)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1189,14 +1206,13 @@ $Script:CompTypeMap = @{
     '10057'='Environment Variable'; '10058'='Env Variable Value';
 }
 
-$btnLoadComponents.add_Click({
-    $solName = $txtSolName.Text.Trim()
+function Invoke-LoadComponents {
+    param([string]$solName)
     if (-not $solName -and $Script:cboSolutions.SelectedIndex -ge 0 -and $Script:Solutions) {
         $solName = $Script:Solutions[$Script:cboSolutions.SelectedIndex].UniqueName
     }
-    if (-not $solName) { [System.Windows.Forms.MessageBox]::Show("Select a solution first (click 'List Solutions' then pick one)."); return }
+    if (-not $solName) { return }
 
-    $btnLoadComponents.Enabled = $false; $btnLoadComponents.Text = "⏳ Loading..."
     $Script:AllComponents.Clear(); $Script:DgComponents.Rows.Clear()
     $Script:OutputBox.AppendText("`r`n📋 Loading components for '$solName'...`r`n")
 
@@ -1238,7 +1254,6 @@ $btnLoadComponents.add_Click({
             $timer.Stop(); $timer.Dispose()
             $res = try { $ps.EndInvoke($handle) } catch { @{Components=@(); RawOutput=$_.Exception.Message; Count=0} }
             $ps.Dispose(); $rs.Dispose()
-            $btnLoadComponents.Enabled = $true; $btnLoadComponents.Text = "📋 Load Components"
             if ($res.Count -gt 0) {
                 foreach ($c in $res.Components) {
                     $null = $Script:AllComponents.Add([PSCustomObject]$c)
@@ -1254,7 +1269,7 @@ $btnLoadComponents.add_Click({
             }
         }
     }); $timer.Start()
-})
+}
 
 # ---- SharePoint ----
 $btnSPConnect.add_Click({
@@ -1477,7 +1492,8 @@ $btnCopyLog.add_Click({
     $Script:OutputBox.AppendText("`r`n[Log copied! Paste into Copilot chat so I can see what you've done.]`r`n")
     $Script:OutputBox.SelectionColor = $C.Text
 })
-
+
+
 # ---- Admin & Licence Analytics ----
 
 $btnEnvWho.add_Click({        Run-Cmd "pac org who"          { pac org who }              "Admin" })
@@ -1861,6 +1877,12 @@ $btnTopSwitch.add_Click({
 })
 
 # ---- GitHub Explorer handlers ----
+function Get-GHWorkspacePath {
+    param([string]$repoNWO)
+    $safe = $repoNWO -replace '[/\\:*?"<>|]','-'
+    return Join-Path $env:USERPROFILE ".ppdash\repos\$safe"
+}
+
 function Refresh-GHRepos {
     $Script:OutputBox.AppendText("`r`n🐙 Fetching GitHub repos...`r`n")
     $raw = gh repo list --limit 100 --json nameWithOwner,url,defaultBranchRef 2>&1 | Out-String
@@ -1978,11 +2000,12 @@ $btnSolSyncGH.add_Click({
         [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to pick a GitHub repo first."); return
     }
     $sol     = $Script:Solutions[$solIdx]
-    $repoNWO = $Script:GHRepos[$ghIdx].nameWithOwner   # "owner/repo"
+    $repoNWO = $Script:GHRepos[$ghIdx].nameWithOwner
     $branch  = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
     $envUrl  = if ($Script:Environments.Count -gt 0 -and $cboTopEnv.SelectedIndex -ge 0) { $Script:Environments[$cboTopEnv.SelectedIndex].Url } else { "" }
     if (-not $envUrl) { [System.Windows.Forms.MessageBox]::Show("No environment selected — use the top switcher."); return }
 
+    $wsDir   = Get-GHWorkspacePath $repoNWO
     $btnSolSyncGH.Enabled = $false; $btnSolSyncGH.Text = "⏳ Working..."
     $Script:OutputBox.AppendText("`r`n📤 Pushing '$($sol.UniqueName)' → $repoNWO ($branch)`r`n")
 
@@ -1990,58 +2013,56 @@ $btnSolSyncGH.add_Click({
     $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState="STA"; $rs.ThreadOptions="ReuseThread"; $rs.Open()
     $ps = [powershell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($envUrl, $solName, $repoNWO, $branch, $logQ)
-        $tmpBase  = Join-Path $env:TEMP "ppdash_$solName"
-        $zipPath  = "$tmpBase.zip"
-        $unpackDir = "$tmpBase`_src"
-        $cloneDir  = "$tmpBase`_clone"
-
+        param($envUrl, $solName, $repoNWO, $branch, $wsDir, $logQ)
+        $zipPath = Join-Path $env:TEMP "ppdash_$solName.zip"
         try {
-            $logQ.Enqueue("  📤 Step 1/4 — Exporting '$solName' from environment...")
+            if (Test-Path (Join-Path $wsDir ".git")) {
+                $logQ.Enqueue("  🔄 Step 1/4 — Pulling latest from $repoNWO/$branch into workspace...")
+                git -C $wsDir fetch origin 2>&1 | Out-Null
+                git -C $wsDir checkout $branch 2>&1 | Out-Null
+                git -C $wsDir pull origin $branch 2>&1 | Out-Null
+            } else {
+                $logQ.Enqueue("  ⬇ Step 1/4 — Cloning $repoNWO into workspace (first time)...")
+                New-Item -ItemType Directory -Path (Split-Path $wsDir) -Force | Out-Null
+                gh repo clone $repoNWO $wsDir -- --branch $branch 2>&1 | Out-Null
+                if (-not (Test-Path (Join-Path $wsDir ".git"))) { return "❌ Clone failed — check 'gh auth status'" }
+            }
+            $logQ.Enqueue("  ✅ Workspace ready: $wsDir")
+
+            $logQ.Enqueue("  📤 Step 2/4 — Exporting '$solName' from environment...")
+            if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
             $export = pac solution export --path $zipPath --name $solName --environment $envUrl 2>&1 | Out-String
             if (-not (Test-Path $zipPath)) { return "❌ Export failed: $export" }
             $logQ.Enqueue("  ✅ Exported — $(([System.IO.FileInfo]$zipPath).Length / 1KB -as [int]) KB")
 
-            $logQ.Enqueue("  📦 Step 2/4 — Unpacking solution files...")
-            if (Test-Path $unpackDir) { Remove-Item $unpackDir -Recurse -Force }
-            pac solution unpack --zipfile $zipPath --folder $unpackDir --packagetype Unmanaged 2>&1 | Out-Null
-            $fileCount = (Get-ChildItem $unpackDir -Recurse -File -ErrorAction SilentlyContinue).Count
-            $logQ.Enqueue("  ✅ Unpacked — $fileCount files")
-
-            $logQ.Enqueue("  ⬇ Step 3/4 — Cloning $repoNWO to temp folder...")
-            if (Test-Path $cloneDir) { Remove-Item $cloneDir -Recurse -Force }
-            gh repo clone $repoNWO $cloneDir -- --depth 1 --branch $branch 2>&1 | Out-Null
-            if (-not (Test-Path $cloneDir)) { return "❌ Clone failed — check gh auth and repo name" }
-
-            # Copy unpacked files into solutions/<solName>/
-            $dest = Join-Path $cloneDir "solutions\$solName"
+            $logQ.Enqueue("  📦 Step 3/4 — Unpacking solution files...")
+            $dest = Join-Path $wsDir "solutions\$solName"
             if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-            Copy-Item $unpackDir $dest -Recurse -Force
-
-            # Diff check
-            $diffStat = git -C $cloneDir diff --stat HEAD 2>&1 | Out-String
-            $diffFull = git -C $cloneDir diff HEAD 2>&1 | Out-String
+            pac solution unpack --zipfile $zipPath --folder $dest --packagetype Unmanaged 2>&1 | Out-Null
+            $fileCount = (Get-ChildItem $dest -Recurse -File -ErrorAction SilentlyContinue).Count
+            $logQ.Enqueue("  ✅ Unpacked — $fileCount files into workspace")
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 
             $logQ.Enqueue("  ⬆ Step 4/4 — Committing and pushing to $repoNWO/$branch...")
-            git -C $cloneDir add "solutions/$solName/" 2>&1 | Out-Null
-            $status = git -C $cloneDir status --short 2>&1 | Out-String
+            git -C $wsDir add "solutions/$solName/" 2>&1 | Out-Null
+            $status = git -C $wsDir status --short 2>&1 | Out-String
             if (-not $status.Trim()) {
                 $logQ.Enqueue("  ℹ No changes — solution unchanged since last push")
                 return [PSCustomObject]@{ SolName=$solName; Stat="No changes"; Full=""; NoChange=$true }
             }
-            git -C $cloneDir commit -m "sync: $solName from env [pp-dashboard]" 2>&1 | Out-Null
-            git -C $cloneDir push origin $branch 2>&1 | Out-Null
+            $diffStat = git -C $wsDir diff --cached --stat 2>&1 | Out-String
+            $diffFull = git -C $wsDir diff --cached 2>&1 | Out-String
+            git -C $wsDir commit -m "sync: $solName from env [pp-dashboard]" 2>&1 | Out-Null
+            git -C $wsDir push origin $branch 2>&1 | Out-Null
             $logQ.Enqueue("  ✅ Pushed to $repoNWO/$branch")
 
             return [PSCustomObject]@{ SolName=$solName; Stat=$diffStat; Full=$diffFull; NoChange=$false }
         } catch {
             return "❌ Error: $($_.Exception.Message)"
         } finally {
-            Remove-Item $zipPath    -Force -ErrorAction SilentlyContinue
-            Remove-Item $unpackDir  -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item $cloneDir   -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
         }
-    }).AddParameters(@{envUrl=$envUrl; solName=$sol.UniqueName; repoNWO=$repoNWO; branch=$branch; logQ=$logQ})
+    }).AddParameters(@{envUrl=$envUrl; solName=$sol.UniqueName; repoNWO=$repoNWO; branch=$branch; wsDir=$wsDir; logQ=$logQ})
 
     $handle = $ps.BeginInvoke()
     $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
@@ -2050,7 +2071,7 @@ $btnSolSyncGH.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export from Environment → Unpack → Push to GitHub  (no local folder needed)"
+            $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export from Env → Unpack → Push to GitHub"
             if ($result -is [string]) {
                 $Script:OutputBox.SelectionColor = $Script:C.Red
                 $Script:OutputBox.AppendText("❌ Push FAILED: $result`r`n")
@@ -2069,7 +2090,6 @@ $btnSolSyncGH.add_Click({
             $Script:OutputBox.AppendText("📊 Changes:`r`n$($result.Stat)`r`n")
             $Script:OutputBox.SelectionColor = $Script:C.Text
             Refresh-GHCommits
-            # AI summary
             $aiCfg = if (Test-Path $Script:AiSettingsPath) { Get-Content $Script:AiSettingsPath -Raw | ConvertFrom-Json } else { $null }
             if ($null -ne $aiCfg -and $aiCfg.ai.provider -ne "clipboard") {
                 $prompt = "Summarize these Power Platform solution changes in plain English for a non-developer. What components changed and why might it matter?`r`n`r`n$($result.Stat)`r`n`r`n$($result.Full.Substring(0,[Math]::Min(3000,$result.Full.Length)))"
@@ -2086,6 +2106,79 @@ $btnSolSyncGH.add_Click({
             }
         }
     }); $timer.Start()
+})
+
+$btnGHPull.add_Click({
+    $ghIdx = $Script:cboGHRepo.SelectedIndex
+    if ($ghIdx -lt 0 -or -not $Script:GHRepos) {
+        [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to pick a GitHub repo first."); return
+    }
+    $repoNWO = $Script:GHRepos[$ghIdx].nameWithOwner
+    $branch  = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
+    $wsDir   = Get-GHWorkspacePath $repoNWO
+
+    $btnGHPull.Enabled = $false; $btnGHPull.Text = "⏳ Pulling..."
+    $Script:OutputBox.AppendText("`r`n📥 Pulling $repoNWO ($branch) into workspace...`r`n")
+
+    $logQ = $Script:LogQueue
+    $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState="STA"; $rs.ThreadOptions="ReuseThread"; $rs.Open()
+    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $null = $ps.AddScript({
+        param($repoNWO, $branch, $wsDir, $logQ)
+        try {
+            if (Test-Path (Join-Path $wsDir ".git")) {
+                $logQ.Enqueue("  🔄 Pulling latest changes...")
+                git -C $wsDir fetch origin 2>&1 | Out-Null
+                git -C $wsDir checkout $branch 2>&1 | Out-Null
+                $out = git -C $wsDir pull origin $branch 2>&1 | Out-String
+                $logQ.Enqueue("  ✅ Pull complete")
+                return "✅ Pull COMPLETE — $repoNWO/$branch`r`n$out"
+            } else {
+                $logQ.Enqueue("  ⬇ Cloning $repoNWO (first time)...")
+                New-Item -ItemType Directory -Path (Split-Path $wsDir) -Force | Out-Null
+                gh repo clone $repoNWO $wsDir -- --branch $branch 2>&1 | Out-Null
+                if (Test-Path (Join-Path $wsDir ".git")) {
+                    return "✅ Cloned $repoNWO → $wsDir"
+                } else { return "❌ Clone failed — check 'gh auth status'" }
+            }
+        } catch { return "❌ Error: $($_.Exception.Message)" }
+    }).AddParameters(@{repoNWO=$repoNWO; branch=$branch; wsDir=$wsDir; logQ=$logQ})
+
+    $handle = $ps.BeginInvoke()
+    $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
+    $timer.add_Tick({
+        if ($handle.IsCompleted) {
+            $timer.Stop(); $timer.Dispose()
+            $result = try { $ps.EndInvoke($handle) } catch { $_.Exception.Message }
+            $ps.Dispose(); $rs.Dispose()
+            $btnGHPull.Enabled = $true; $btnGHPull.Text = "📥  Pull from GitHub"
+            $col = if ($result -like "✅*") { $Script:C.Green } else { $Script:C.Red }
+            $Script:OutputBox.SelectionColor = $col
+            $Script:OutputBox.AppendText("$result`r`n")
+            $Script:OutputBox.SelectionColor = $Script:C.Text
+            Refresh-GHCommits
+        }
+    }); $timer.Start()
+})
+
+$btnGHOpenWS.add_Click({
+    $ghIdx = $Script:cboGHRepo.SelectedIndex
+    if ($ghIdx -lt 0 -or -not $Script:GHRepos) {
+        [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to pick a GitHub repo first."); return
+    }
+    $wsDir = Get-GHWorkspacePath $Script:GHRepos[$ghIdx].nameWithOwner
+    if (Test-Path $wsDir) {
+        Start-Process explorer.exe $wsDir
+    } else {
+        $ans = [System.Windows.Forms.MessageBox]::Show(
+            "Workspace not yet created.`r`nClick '📥 Pull from GitHub' to clone it first.`r`n`r`nOpen parent folder instead?",
+            "Workspace Not Found", [System.Windows.Forms.MessageBoxButtons]::YesNo)
+        if ($ans -eq "Yes") {
+            $parent = Join-Path $env:USERPROFILE ".ppdash\repos"
+            New-Item -ItemType Directory -Path $parent -Force | Out-Null
+            Start-Process explorer.exe $parent
+        }
+    }
 })
 
 $btnGitPush.add_Click({
