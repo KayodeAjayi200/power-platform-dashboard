@@ -347,24 +347,60 @@ $tabSol.Controls.Add($Script:DgComponents)
 $Script:AllComponents = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 
-Divider "📤 GitHub / Source Control Sync" 8 293 830 $tabSol
-$tabSol.Controls.Add((New-Lbl "Local repo:" 8 317 80))
-$txtSolRepoPath = New-Txt (Join-Path "C:\Repositories" "veldarr-powerplatform") 92 314 400
-$tabSol.Controls.Add($txtSolRepoPath)
-$btnSolBrowseRepo = New-Btn "📁" 500 314 38 24
-$tabSol.Controls.Add($btnSolBrowseRepo)
-$btnSolLinkGH = New-Btn "🐙 My Repos" 546 314 138 24 $C.Teal
-$tabSol.Controls.Add($btnSolLinkGH)
-$tabSol.Controls.Add((New-Lbl "💡 One repo · each solution unpacked into /solutions/{UniqueName}/ · shared pipelines at root" 8 342 880 18 $C.Overlay))
+Divider "🐙 GitHub Explorer" 8 293 880 $tabSol
+$tabSol.Controls.Add((New-Lbl "Repo:" 8 317 42 18 $C.Subtext))
+$Script:cboGHRepo   = New-Combo @() 52 314 268
+$tabSol.Controls.Add($Script:cboGHRepo)
+$tabSol.Controls.Add((New-Lbl "Branch:" 328 317 52 18 $C.Subtext))
+$Script:cboGHBranch = New-Combo @("main","master") 382 314 120
+$tabSol.Controls.Add($Script:cboGHBranch)
+$btnGHRefresh = New-Btn "🔄 Refresh"   510 314 100 26 $C.Teal
+$btnGHOpen    = New-Btn "🌐 Open"      618 314 80  26 $C.Blue
+$btnGHNewRepo = New-Btn "➕ New Repo"  706 314 106 26 $C.Green
+$tabSol.Controls.Add($btnGHRefresh); $tabSol.Controls.Add($btnGHOpen); $tabSol.Controls.Add($btnGHNewRepo)
+
+$Script:DgGHCommits = New-Object System.Windows.Forms.DataGridView
+$Script:DgGHCommits.Location  = [System.Drawing.Point]::new(8, 346)
+$Script:DgGHCommits.Size      = [System.Drawing.Size]::new(888, 62)
+$Script:DgGHCommits.BackgroundColor = $C.Surface
+$Script:DgGHCommits.ForeColor       = $C.Text
+$Script:DgGHCommits.GridColor       = $C.Overlay
+$Script:DgGHCommits.BorderStyle     = [System.Windows.Forms.BorderStyle]::None
+$Script:DgGHCommits.ColumnHeadersDefaultCellStyle.BackColor = $C.Panel
+$Script:DgGHCommits.ColumnHeadersDefaultCellStyle.ForeColor = $C.Text
+$Script:DgGHCommits.ColumnHeadersBorderStyle = [System.Windows.Forms.DataGridViewHeaderBorderStyle]::None
+$Script:DgGHCommits.DefaultCellStyle.BackColor            = $C.Surface
+$Script:DgGHCommits.DefaultCellStyle.ForeColor            = $C.Text
+$Script:DgGHCommits.AlternatingRowsDefaultCellStyle.BackColor = $C.Base
+$Script:DgGHCommits.SelectionMode       = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$Script:DgGHCommits.ReadOnly            = $true
+$Script:DgGHCommits.AllowUserToAddRows  = $false
+$Script:DgGHCommits.RowHeadersVisible   = $false
+$Script:DgGHCommits.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+$Script:DgGHCommits.Font                = [System.Drawing.Font]::new("Segoe UI", 8.5)
+$gc1 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $gc1.Name="When";    $gc1.HeaderText="When";    $gc1.FillWeight=14
+$gc2 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $gc2.Name="Author";  $gc2.HeaderText="Author";  $gc2.FillWeight=16
+$gc3 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $gc3.Name="Message"; $gc3.HeaderText="Commit Message"; $gc3.FillWeight=60
+$gc4 = New-Object System.Windows.Forms.DataGridViewTextBoxColumn; $gc4.Name="SHA";     $gc4.HeaderText="SHA";     $gc4.FillWeight=10
+$null = $Script:DgGHCommits.Columns.AddRange($gc1,$gc2,$gc3,$gc4)
+$tabSol.Controls.Add($Script:DgGHCommits)
+
+$tabSol.Controls.Add((New-Lbl "Ask AI:" 8 416 54 18 $C.Subtext))
+$txtGHAiCmd = New-Txt "Summarise recent changes to this solution in plain English" 62 413 644
+$tabSol.Controls.Add($txtGHAiCmd)
+$btnGHAskAi = New-Btn "🤖 Ask AI" 710 413 104 26 $C.Mauve
+$tabSol.Controls.Add($btnGHAskAi)
+
 $btnSolSyncGH            = New-Object System.Windows.Forms.Button
-$btnSolSyncGH.Text       = "📤  Export → Unpack → AI Summary → Commit → Push"
-$btnSolSyncGH.Location   = [System.Drawing.Point]::new(8, 362)
-$btnSolSyncGH.Size       = [System.Drawing.Size]::new(890, 42)
+$btnSolSyncGH.Text       = "📤  Export from Environment → Unpack → Push to GitHub  (no local folder needed)"
+$btnSolSyncGH.Location   = [System.Drawing.Point]::new(8, 445)
+$btnSolSyncGH.Size       = [System.Drawing.Size]::new(888, 36)
 $btnSolSyncGH.BackColor  = $C.Mauve
 $btnSolSyncGH.ForeColor  = $C.Base
 $btnSolSyncGH.FlatStyle  = [System.Windows.Forms.FlatStyle]::Flat
-$btnSolSyncGH.Font       = [System.Drawing.Font]::new("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$btnSolSyncGH.Font       = [System.Drawing.Font]::new("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $tabSol.Controls.Add($btnSolSyncGH)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — SHAREPOINT
@@ -1824,169 +1860,189 @@ $btnTopSwitch.add_Click({
     $envStatusLbl.Text = "✅ $($env.Name)"
 })
 
-$btnSolBrowseRepo.add_Click({
-    $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-    $dlg.Description = "Select local git repository folder"
-    if ($dlg.ShowDialog() -eq "OK") { $txtSolRepoPath.Text = $dlg.SelectedPath }
+# ---- GitHub Explorer handlers ----
+function Refresh-GHRepos {
+    $Script:OutputBox.AppendText("`r`n🐙 Fetching GitHub repos...`r`n")
+    $raw = gh repo list --limit 100 --json nameWithOwner,url,defaultBranchRef 2>&1 | Out-String
+    try {
+        $repos = $raw | ConvertFrom-Json
+        $Script:GHRepos = $repos
+        $Script:cboGHRepo.Items.Clear()
+        foreach ($r in $repos) { $Script:cboGHRepo.Items.Add($r.nameWithOwner) | Out-Null }
+        if ($Script:cboGHRepo.Items.Count -gt 0) { $Script:cboGHRepo.SelectedIndex = 0 }
+        $Script:OutputBox.SelectionColor = $Script:C.Green
+        $Script:OutputBox.AppendText("✅ $($repos.Count) repos loaded`r`n")
+        $Script:OutputBox.SelectionColor = $Script:C.Text
+    } catch {
+        $Script:OutputBox.SelectionColor = $Script:C.Red
+        $Script:OutputBox.AppendText("❌ Could not list repos — run 'gh auth login' first`r`n")
+        $Script:OutputBox.SelectionColor = $Script:C.Text
+    }
+}
+
+function Refresh-GHBranches {
+    $idx = $Script:cboGHRepo.SelectedIndex
+    if ($idx -lt 0 -or -not $Script:GHRepos) { return }
+    $repo = $Script:GHRepos[$idx].nameWithOwner
+    $raw  = gh api "repos/$repo/branches" 2>&1 | Out-String
+    try {
+        $branches = $raw | ConvertFrom-Json
+        $Script:cboGHBranch.Items.Clear()
+        foreach ($b in $branches) { $Script:cboGHBranch.Items.Add($b.name) | Out-Null }
+        if ($Script:cboGHBranch.Items.Count -gt 0) { $Script:cboGHBranch.SelectedIndex = 0 }
+    } catch { }
+}
+
+function Refresh-GHCommits {
+    $idx = $Script:cboGHRepo.SelectedIndex
+    if ($idx -lt 0 -or -not $Script:GHRepos) { return }
+    $repo   = $Script:GHRepos[$idx].nameWithOwner
+    $branch = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
+    $solName = $txtSolName.Text.Trim()
+    $path   = if ($solName) { "&path=solutions/$solName" } else { "" }
+    $raw    = gh api "repos/$repo/commits?sha=$branch&per_page=10$path" 2>&1 | Out-String
+    $Script:DgGHCommits.Rows.Clear()
+    try {
+        $commits = $raw | ConvertFrom-Json
+        $Script:GHLastCommits = $commits
+        foreach ($c in $commits) {
+            $when   = try { ([datetime]$c.commit.author.date).ToString("MM/dd HH:mm") } catch { "" }
+            $author = $c.commit.author.name
+            $msg    = $c.commit.message -replace "`n.*",""   # first line only
+            $sha    = $c.sha.Substring(0,7)
+            $null   = $Script:DgGHCommits.Rows.Add($when, $author, $msg, $sha)
+        }
+    } catch { }
+}
+
+$Script:cboGHRepo.add_SelectedIndexChanged({ Refresh-GHBranches; Refresh-GHCommits })
+$Script:cboGHBranch.add_SelectedIndexChanged({ Refresh-GHCommits })
+
+$btnGHRefresh.add_Click({ Refresh-GHRepos })
+
+$btnGHOpen.add_Click({
+    $idx = $Script:cboGHRepo.SelectedIndex
+    $url = if ($idx -ge 0 -and $Script:GHRepos) { $Script:GHRepos[$idx].url } else { "https://github.com" }
+    Start-Process $url
 })
 
-$btnSolLinkGH.add_Click({
-    $Script:OutputBox.AppendText("`r`n🐙 Fetching GitHub repos...`r`n")
-    $repos = gh repo list --limit 50 --json name,url,updatedAt 2>&1 | ConvertFrom-Json -ErrorAction SilentlyContinue
-    if ($repos) {
-        $form2 = New-Object System.Windows.Forms.Form
-        $form2.Text = "Select GitHub Repo"; $form2.Size = [System.Drawing.Size]::new(520, 420)
-        $form2.BackColor = $C.Base; $form2.ForeColor = $C.Text
-        $form2.StartPosition = "CenterParent"
-        $lst = New-Object System.Windows.Forms.ListBox
-        $lst.Location = [System.Drawing.Point]::new(10,10); $lst.Size = [System.Drawing.Size]::new(480, 310)
-        $lst.BackColor = $C.Surface; $lst.ForeColor = $C.Text
-        foreach ($r in $repos) { $lst.Items.Add("$($r.name)  —  $($r.url)") | Out-Null }
-        $btnNew  = New-Object System.Windows.Forms.Button
-        $btnNew.Text = "➕ Create New Repo"; $btnNew.Location = [System.Drawing.Point]::new(10, 330)
-        $btnNew.Size = [System.Drawing.Size]::new(160, 36); $btnNew.BackColor = $C.Green; $btnNew.ForeColor = $C.Base
-        $btnSel  = New-Object System.Windows.Forms.Button
-        $btnSel.Text = "✔ Use Selected"; $btnSel.Location = [System.Drawing.Point]::new(330, 330)
-        $btnSel.Size = [System.Drawing.Size]::new(160, 36); $btnSel.BackColor = $C.Teal; $btnSel.ForeColor = $C.Base
-        $form2.Controls.AddRange(@($lst, $btnNew, $btnSel))
-        $btnNew.add_Click({
-            $name = [Microsoft.VisualBasic.Interaction]::InputBox("New repo name:","Create GitHub Repo","veldarr-powerplatform")
-            if ($name) {
-                gh repo create $name --private --confirm 2>&1 | Out-Null
-                $Script:OutputBox.AppendText("✅ Created repo: $name`r`n")
-            }
-            $form2.Close()
-        })
-        $btnSel.add_Click({
-            if ($lst.SelectedIndex -ge 0) {
-                $repoUrl = ($repos[$lst.SelectedIndex]).url
-                $repoName = ($repos[$lst.SelectedIndex]).name
-                $localPath = Join-Path "C:\Repositories" $repoName
-                if (-not (Test-Path $localPath)) {
-                    gh repo clone $repoUrl $localPath 2>&1 | Out-Null
-                    $Script:OutputBox.AppendText("✅ Cloned to $localPath`r`n")
-                }
-                $txtSolRepoPath.Text = $localPath
-            }
-            $form2.Close()
-        })
-        $form2.ShowDialog() | Out-Null
-    } else {
-        $Script:OutputBox.AppendText("❌ Could not list repos. Run: gh auth login`r`n")
+$btnGHNewRepo.add_Click({
+    $name = [Microsoft.VisualBasic.Interaction]::InputBox("New GitHub repo name:","Create Repo","veldarr-powerplatform")
+    if (-not $name) { return }
+    $vis = [System.Windows.Forms.MessageBox]::Show("Make repo private?","Visibility",[System.Windows.Forms.MessageBoxButtons]::YesNo)
+    $flag = if ($vis -eq "Yes") { "--private" } else { "--public" }
+    gh repo create $name $flag 2>&1 | Out-Null
+    $Script:OutputBox.SelectionColor = $Script:C.Green
+    $Script:OutputBox.AppendText("✅ Created GitHub repo: $name`r`n")
+    $Script:OutputBox.SelectionColor = $Script:C.Text
+    Refresh-GHRepos
+})
+
+$btnGHAskAi.add_Click({
+    $idx = $Script:cboGHRepo.SelectedIndex
+    if ($idx -lt 0 -or -not $Script:GHRepos) { [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to load repos first."); return }
+    $repo    = $Script:GHRepos[$idx].nameWithOwner
+    $branch  = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
+    $solName = $txtSolName.Text.Trim()
+    $cmd     = $txtGHAiCmd.Text.Trim()
+
+    $Script:OutputBox.AppendText("`r`n🤖 Gathering context from GitHub for AI...`r`n")
+
+    # Get diff of last commit
+    $commits = $Script:GHLastCommits
+    $context = ""
+    if ($commits -and $commits.Count -gt 0) {
+        $sha  = $commits[0].sha
+        $diff = gh api "repos/$repo/commits/$sha" 2>&1 | Out-String
+        try {
+            $d = $diff | ConvertFrom-Json
+            $files = $d.files | ForEach-Object { "  $($_.status): $($_.filename) (+$($_.additions)/-$($_.deletions))" }
+            $context = "Latest commit on $branch by $($d.commit.author.name):`r`n$($d.commit.message)`r`n`r`nFiles changed:`r`n$($files -join "`r`n")"
+        } catch { $context = $diff.Substring(0,[Math]::Min(3000,$diff.Length)) }
     }
+
+    $prompt = "$cmd`r`n`r`nGitHub repo: $repo  Branch: $branch  Solution: $solName`r`n`r`n$context"
+    $aiResult = Invoke-AiRequest $prompt
+    $Script:OutputBox.SelectionColor = $Script:C.Mauve
+    $Script:OutputBox.AppendText("🤖 AI:`r`n$aiResult`r`n")
+    $Script:OutputBox.SelectionColor = $Script:C.Text
 })
 
 $btnSolSyncGH.add_Click({
-    if ($Script:Solutions.Count -eq 0) { Load-Solutions }
     $solIdx = $Script:cboSolutions.SelectedIndex
-    if ($solIdx -lt 0 -or $Script:Solutions.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("No solutions found. Check environment connection.")
-        return
+    if ($solIdx -lt 0 -or -not $Script:Solutions) {
+        [System.Windows.Forms.MessageBox]::Show("Select a solution first (use 'List Solutions' at the top)."); return
+    }
+    $ghIdx = $Script:cboGHRepo.SelectedIndex
+    if ($ghIdx -lt 0 -or -not $Script:GHRepos) {
+        [System.Windows.Forms.MessageBox]::Show("Click 🔄 Refresh to pick a GitHub repo first."); return
     }
     $sol     = $Script:Solutions[$solIdx]
-    $repo    = $txtSolRepoPath.Text.Trim()
-    if (-not (Test-Path $repo)) {
-        $dlg = New-Object System.Windows.Forms.Form
-        $dlg.Text = "Set Up Local Repo"; $dlg.Size = [System.Drawing.Size]::new(420, 200)
-        $dlg.StartPosition = "CenterParent"; $dlg.BackColor = $C.Base; $dlg.ForeColor = $C.Text
-        $dlg.FormBorderStyle = "FixedDialog"; $dlg.MaximizeBox = $false; $dlg.MinimizeBox = $false
-        $dlg.Controls.Add((New-Lbl "Folder not found: $repo" 12 12 390 18 $C.Peach))
-        $dlg.Controls.Add((New-Lbl "What would you like to do?" 12 34 390 18 $C.Subtext))
-        $b1 = New-Btn "🆕 Create here (git init)" 12 68 180 36 $C.Green
-        $b2 = New-Btn "☁️ Clone from GitHub"      202 68 180 36 $C.Teal
-        $b3 = New-Btn "Cancel"                     302 138 90 30 $C.Overlay
-        $dlg.Controls.AddRange(@($b1,$b2,$b3))
-        $Script:_repoAction = $null
-        $b1.add_Click({ $Script:_repoAction = "init"; $dlg.Close() })
-        $b2.add_Click({ $Script:_repoAction = "clone"; $dlg.Close() })
-        $b3.add_Click({ $dlg.Close() })
-        $dlg.ShowDialog() | Out-Null
-        if (-not $Script:_repoAction) { return }
-        if ($Script:_repoAction -eq "init") {
-            New-Item -ItemType Directory -Path $repo -Force | Out-Null
-            git -C $repo init 2>&1 | Out-Null
-            New-Item -Path (Join-Path $repo "README.md") -Value "# Power Platform Solutions`n" -Force | Out-Null
-            git -C $repo add . 2>&1 | Out-Null
-            git -C $repo commit -m "init: Power Platform solutions repo" 2>&1 | Out-Null
-            $Script:OutputBox.SelectionColor = $C.Green
-            $Script:OutputBox.AppendText("✅ Created local repo at $repo`r`n")
-            $Script:OutputBox.SelectionColor = $C.Text
-            # Optionally push to GitHub
-            $ghName = [Microsoft.VisualBasic.Interaction]::InputBox("Push to GitHub? Enter repo name (leave blank to skip):", "GitHub Push", (Split-Path $repo -Leaf))
-            if ($ghName) {
-                gh repo create $ghName --private --source $repo --push 2>&1 | Out-Null
-                $Script:OutputBox.AppendText("✅ Created & pushed to GitHub: $ghName`r`n")
-            }
-        } elseif ($Script:_repoAction -eq "clone") {
-            $repos = gh repo list --limit 50 --json name,url 2>&1 | ConvertFrom-Json -ErrorAction SilentlyContinue
-            if (-not $repos) { $Script:OutputBox.AppendText("❌ gh auth login needed`r`n"); return }
-            $pick = New-Object System.Windows.Forms.Form
-            $pick.Text = "Clone from GitHub"; $pick.Size = [System.Drawing.Size]::new(460,360)
-            $pick.StartPosition = "CenterParent"; $pick.BackColor = $C.Base; $pick.ForeColor = $C.Text
-            $lst2 = New-Object System.Windows.Forms.ListBox
-            $lst2.Location = [System.Drawing.Point]::new(10,10); $lst2.Size = [System.Drawing.Size]::new(430,270)
-            $lst2.BackColor = $C.Surface; $lst2.ForeColor = $C.Text
-            foreach ($r in $repos) { $lst2.Items.Add("$($r.name)  —  $($r.url)") | Out-Null }
-            $bClone = New-Btn "⬇ Clone Selected" 280 295 150 36 $C.Teal
-            $pick.Controls.AddRange(@($lst2,$bClone))
-            $bClone.add_Click({
-                if ($lst2.SelectedIndex -ge 0) {
-                    $rUrl = ($repos[$lst2.SelectedIndex]).url
-                    gh repo clone $rUrl $repo 2>&1 | Out-Null
-                    $Script:OutputBox.SelectionColor = $C.Green
-                    $Script:OutputBox.AppendText("✅ Cloned to $repo`r`n")
-                    $Script:OutputBox.SelectionColor = $C.Text
-                    $txtSolRepoPath.Text = $repo
-                }
-                $pick.Close()
-            })
-            $pick.ShowDialog() | Out-Null
-            if (-not (Test-Path $repo)) { return }
-        }
-    }
-    $envUrl  = if ($Script:Environments.Count -gt 0) { $Script:Environments[$cboTopEnv.SelectedIndex].Url } else { "" }
+    $repoNWO = $Script:GHRepos[$ghIdx].nameWithOwner   # "owner/repo"
+    $branch  = if ($Script:cboGHBranch.SelectedItem) { $Script:cboGHBranch.SelectedItem } else { "main" }
+    $envUrl  = if ($Script:Environments.Count -gt 0 -and $cboTopEnv.SelectedIndex -ge 0) { $Script:Environments[$cboTopEnv.SelectedIndex].Url } else { "" }
     if (-not $envUrl) { [System.Windows.Forms.MessageBox]::Show("No environment selected — use the top switcher."); return }
-    $zipPath  = Join-Path $env:TEMP "$($sol.UniqueName)_sync.zip"
-    $srcDir   = Join-Path $repo "solutions\$($sol.UniqueName)"
 
     $btnSolSyncGH.Enabled = $false; $btnSolSyncGH.Text = "⏳ Working..."
-    $Script:OutputBox.AppendText("`r`n▶ Sync '$($sol.UniqueName)' → $repo`r`n")
+    $Script:OutputBox.AppendText("`r`n📤 Pushing '$($sol.UniqueName)' → $repoNWO ($branch)`r`n")
 
-    $aiCfg = if (Test-Path $Script:AiSettingsPath) { Get-Content $Script:AiSettingsPath -Raw | ConvertFrom-Json } else { $null }
-    $logQ  = $Script:LogQueue
-
-    $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $rs.Open()
-    $ps = [System.Management.Automation.PowerShell]::Create(); $ps.Runspace = $rs
+    $logQ = $Script:LogQueue
+    $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState="STA"; $rs.ThreadOptions="ReuseThread"; $rs.Open()
+    $ps = [powershell]::Create(); $ps.Runspace = $rs
     $null = $ps.AddScript({
-        param($envUrl,$solName,$zipPath,$srcDir,$repo,$logQ)
-        $logQ.Enqueue("  📋 Step 1/5 — Ensuring solutions folder exists...")
-        Set-Location $repo
-        if (-not (Test-Path "solutions")) { New-Item -ItemType Directory -Path "solutions" | Out-Null }
-        $logQ.Enqueue("  📤 Step 2/5 — Exporting solution '$solName' from environment (this can take a few minutes)...")
-        $export = pac solution export --path $zipPath --name $solName --environment $envUrl 2>&1 | Out-String
-        if (-not (Test-Path $zipPath)) { return "❌ Export failed:`r`n$export" }
-        $logQ.Enqueue("  ✅ Export complete — $(([System.IO.FileInfo]$zipPath).Length / 1KB -as [int]) KB")
-        $logQ.Enqueue("  📦 Step 3/5 — Unpacking solution YAML files...")
-        if (Test-Path $srcDir) { Remove-Item $srcDir -Recurse -Force }
-        $unpack = pac solution unpack --zipfile $zipPath --folder $srcDir --packagetype Unmanaged 2>&1 | Out-String
-        $fileCount = (Get-ChildItem $srcDir -Recurse -File -ErrorAction SilentlyContinue).Count
-        $logQ.Enqueue("  ✅ Unpacked — $fileCount files in solutions\$solName\")
-        $logQ.Enqueue("  🔍 Step 4/5 — Checking git diff...")
-        git add "solutions/$solName/" 2>&1 | Out-Null
-        $diffStat = git diff --staged --stat 2>&1 | Out-String
-        $diffFull = git diff --staged 2>&1 | Out-String
-        if (-not $diffStat.Trim()) {
-            $logQ.Enqueue("  ℹ No changes detected since last sync.")
-            return "ℹ No changes — solution unchanged since last sync.`r`n$unpack"
+        param($envUrl, $solName, $repoNWO, $branch, $logQ)
+        $tmpBase  = Join-Path $env:TEMP "ppdash_$solName"
+        $zipPath  = "$tmpBase.zip"
+        $unpackDir = "$tmpBase`_src"
+        $cloneDir  = "$tmpBase`_clone"
+
+        try {
+            $logQ.Enqueue("  📤 Step 1/4 — Exporting '$solName' from environment...")
+            $export = pac solution export --path $zipPath --name $solName --environment $envUrl 2>&1 | Out-String
+            if (-not (Test-Path $zipPath)) { return "❌ Export failed: $export" }
+            $logQ.Enqueue("  ✅ Exported — $(([System.IO.FileInfo]$zipPath).Length / 1KB -as [int]) KB")
+
+            $logQ.Enqueue("  📦 Step 2/4 — Unpacking solution files...")
+            if (Test-Path $unpackDir) { Remove-Item $unpackDir -Recurse -Force }
+            pac solution unpack --zipfile $zipPath --folder $unpackDir --packagetype Unmanaged 2>&1 | Out-Null
+            $fileCount = (Get-ChildItem $unpackDir -Recurse -File -ErrorAction SilentlyContinue).Count
+            $logQ.Enqueue("  ✅ Unpacked — $fileCount files")
+
+            $logQ.Enqueue("  ⬇ Step 3/4 — Cloning $repoNWO to temp folder...")
+            if (Test-Path $cloneDir) { Remove-Item $cloneDir -Recurse -Force }
+            gh repo clone $repoNWO $cloneDir -- --depth 1 --branch $branch 2>&1 | Out-Null
+            if (-not (Test-Path $cloneDir)) { return "❌ Clone failed — check gh auth and repo name" }
+
+            # Copy unpacked files into solutions/<solName>/
+            $dest = Join-Path $cloneDir "solutions\$solName"
+            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+            Copy-Item $unpackDir $dest -Recurse -Force
+
+            # Diff check
+            $diffStat = git -C $cloneDir diff --stat HEAD 2>&1 | Out-String
+            $diffFull = git -C $cloneDir diff HEAD 2>&1 | Out-String
+
+            $logQ.Enqueue("  ⬆ Step 4/4 — Committing and pushing to $repoNWO/$branch...")
+            git -C $cloneDir add "solutions/$solName/" 2>&1 | Out-Null
+            $status = git -C $cloneDir status --short 2>&1 | Out-String
+            if (-not $status.Trim()) {
+                $logQ.Enqueue("  ℹ No changes — solution unchanged since last push")
+                return [PSCustomObject]@{ SolName=$solName; Stat="No changes"; Full=""; NoChange=$true }
+            }
+            git -C $cloneDir commit -m "sync: $solName from env [pp-dashboard]" 2>&1 | Out-Null
+            git -C $cloneDir push origin $branch 2>&1 | Out-Null
+            $logQ.Enqueue("  ✅ Pushed to $repoNWO/$branch")
+
+            return [PSCustomObject]@{ SolName=$solName; Stat=$diffStat; Full=$diffFull; NoChange=$false }
+        } catch {
+            return "❌ Error: $($_.Exception.Message)"
+        } finally {
+            Remove-Item $zipPath    -Force -ErrorAction SilentlyContinue
+            Remove-Item $unpackDir  -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item $cloneDir   -Recurse -Force -ErrorAction SilentlyContinue
         }
-        $logQ.Enqueue("  📊 Changes detected:`r`n$($diffStat.Trim())")
-        $logQ.Enqueue("  ⬆ Step 5/5 — Committing and pushing...")
-        git commit -m "sync: export $solName from env [pp-dashboard]" 2>&1 | Out-Null
-        $branch = git branch --show-current
-        git push --set-upstream origin $branch 2>&1 | Out-Null
-        $logQ.Enqueue("  ✅ Pushed to origin/$branch")
-        return [PSCustomObject]@{ Stat=$diffStat; Full=$diffFull; SolName=$solName }
-    }).AddParameters(@{envUrl=$envUrl;solName=$sol.UniqueName;zipPath=$zipPath;srcDir=$srcDir;repo=$repo;logQ=$logQ})
+    }).AddParameters(@{envUrl=$envUrl; solName=$sol.UniqueName; repoNWO=$repoNWO; branch=$branch; logQ=$logQ})
+
     $handle = $ps.BeginInvoke()
     $timer  = New-Object System.Windows.Forms.Timer; $timer.Interval = 1000
     $timer.add_Tick({
@@ -1994,31 +2050,38 @@ $btnSolSyncGH.add_Click({
             $timer.Stop(); $timer.Dispose()
             $result = try { $ps.EndInvoke($handle) } catch { $_.Exception.Message }
             $ps.Dispose(); $rs.Dispose()
-            $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export → Unpack → AI Summary → Commit → Push"
+            $btnSolSyncGH.Enabled = $true; $btnSolSyncGH.Text = "📤  Export from Environment → Unpack → Push to GitHub  (no local folder needed)"
             if ($result -is [string]) {
                 $Script:OutputBox.SelectionColor = $Script:C.Red
-                $Script:OutputBox.AppendText("❌ Sync FAILED: $result`r`n")
+                $Script:OutputBox.AppendText("❌ Push FAILED: $result`r`n")
+                $Script:OutputBox.SelectionColor = $Script:C.Text
+                return
+            }
+            if ($result.NoChange) {
+                $Script:OutputBox.SelectionColor = $Script:C.Sky
+                $Script:OutputBox.AppendText("ℹ No changes — '$($result.SolName)' is already up to date in GitHub`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
                 return
             }
             $Script:OutputBox.SelectionColor = $Script:C.Green
-            $Script:OutputBox.AppendText("✅ Synced '$($result.SolName)' to GitHub`r`n")
+            $Script:OutputBox.AppendText("✅ '$($result.SolName)' pushed to GitHub!`r`n")
             $Script:OutputBox.SelectionColor = $Script:C.Sky
             $Script:OutputBox.AppendText("📊 Changes:`r`n$($result.Stat)`r`n")
             $Script:OutputBox.SelectionColor = $Script:C.Text
+            Refresh-GHCommits
             # AI summary
-            if ($null -ne $aiCfg -and $aiCfg.Provider -ne "clipboard") {
-                $Script:OutputBox.AppendText("🤖 Generating AI summary...`r`n")
-                $prompt = "Summarize the following Power Platform solution changes in plain English for a non-developer. Focus on what components changed and what it might mean business-wise.`r`n`r`n$($result.Stat)`r`n`r`nFirst 4000 chars of diff:`r`n$($result.Full.Substring(0, [Math]::Min(4000,$result.Full.Length)))"
+            $aiCfg = if (Test-Path $Script:AiSettingsPath) { Get-Content $Script:AiSettingsPath -Raw | ConvertFrom-Json } else { $null }
+            if ($null -ne $aiCfg -and $aiCfg.ai.provider -ne "clipboard") {
+                $prompt = "Summarize these Power Platform solution changes in plain English for a non-developer. What components changed and why might it matter?`r`n`r`n$($result.Stat)`r`n`r`n$($result.Full.Substring(0,[Math]::Min(3000,$result.Full.Length)))"
                 $aiResult = Invoke-AiRequest $prompt
                 $Script:OutputBox.SelectionColor = $Script:C.Mauve
                 $Script:OutputBox.AppendText("🤖 AI Summary:`r`n$aiResult`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
             } else {
-                $clipText = "I just synced a Power Platform solution. Here are the changes:`r`n$($result.Stat)`r`n`r`nPlease summarise what changed in plain English for a non-developer."
-                [System.Windows.Forms.Clipboard]::SetText($clipText)
+                $clip = "Power Platform solution '$($result.SolName)' was just pushed to GitHub. Changes:`r`n$($result.Stat)`r`n`r`nPlease summarise what changed in plain English."
+                [System.Windows.Forms.Clipboard]::SetText($clip)
                 $Script:OutputBox.SelectionColor = $Script:C.Teal
-                $Script:OutputBox.AppendText("📋 Summary prompt copied to clipboard — paste into your AI chat for a plain-English explanation.`r`n")
+                $Script:OutputBox.AppendText("📋 Summary prompt copied to clipboard — paste into your AI chat`r`n")
                 $Script:OutputBox.SelectionColor = $Script:C.Text
             }
         }
