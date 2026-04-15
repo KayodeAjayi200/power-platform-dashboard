@@ -128,31 +128,11 @@ This repo ships with **agent skill files** — structured reference docs that te
 
 ### Installing skills into the Copilot app
 
-If you use the **GitHub Copilot desktop app**, you can add these as personal agent skills so they appear in your Skills panel:
+If you use the **GitHub Copilot desktop app**, just tell your AI agent:
 
-```powershell
-# Run this from the repo root after cloning:
-$skillsTarget = "$env:USERPROFILE\.agents\skills"
+> *"Install the agent skills from this repo into my Copilot app"*
 
-# Power Apps Canvas skill (controls + Power Fx reference)
-$dest = "$skillsTarget\powerapps-canvas"
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Copy-Item "skills\PowerApps-Canvas-Skill.md" "$dest\SKILL.md" -Force
-
-# Power Apps Canvas Design skill (UI/UX, containers, responsive, Fluent UI)
-$dest = "$skillsTarget\powerapps-canvas-design"
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Copy-Item "skills\PowerApps-Canvas-Design-Skill.md" "$dest\SKILL.md" -Force
-
-# Power Platform Dashboard setup skill
-$dest = "$skillsTarget\power-platform-dashboard"
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Copy-Item "AGENT_SKILL.md" "$dest\SKILL.md" -Force
-
-Write-Host "✅ Skills installed — refresh the Skills panel in the Copilot app"
-```
-
-After running, open the Skills panel → click 🔄 Refresh → your skills will appear as **personal-agents** entries.
+Your AI will copy the skill files to the right place automatically. Then open the Skills panel and click 🔄 Refresh — the skills will appear under **personal-agents**.
 
 ### For VS Code / GitHub Copilot coding agent
 
