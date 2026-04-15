@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE 1 — Export & Unpack
+# Runs in Azure DevOps.  Exports a solution from the DEV environment,
+# unpacks it into /src/<SolutionName>/ and commits back to the feature branch.
+#
+# Required pipeline variables (set in ADO Library or pipeline UI):
+#   PowerPlatformSPN  — Service connection to Power Platform (via Entra SPN)
+#   DevEnvironmentUrl — e.g. https://org273306d6.crm11.dynamics.com/
+#   SolutionName      — Unique name of the solution to export
+# ─────────────────────────────────────────────────────────────────────────────
+trigger: none          # Run manually or call from another pipeline
+
+pool:
+  vmImage: windows-latest
+
+variables:
+  - name: BuildDropPath
+    value: $(Build.ArtifactStagingDirectory)
+
+steps:
+  # ── 1. Install Power Platform Build Tools ──────────────────────────────────
+  - task: PowerPlatformToolInstaller@2
+    displayName: Install PAC CLI
+    inputs:
+      DefaultVersion: true
+
+  # ── 2. Export unmanaged solution from Dev ──────────────────────────────────
+  - task: PowerPlatformExportSolution@2
+    displayName: Export (unmanaged)
+    inputs:
+      authenticationType: PowerPlatformSPN
+      PowerPlatformSPN: $(PowerPlatformSPN)
+      Environment: $(DevEnvironmentUrl)
+      SolutionName: $(SolutionName)
+      SolutionOutputFile: $(BuildDropPath)\$(SolutionName).zip
+      Managed: false
+
+  # ── 3. Unpack solution into source folder ──────────────────────────────────
+  - task: PowerPlatformUnpackSolution@2
+    displayName: Unpack to src/
+    inputs:
+      SolutionInputFile: $(BuildDropPath)\$(SolutionName).zip
+      SolutionTargetFolder: $(Build.SourcesDirectory)\src\$(SolutionName)
+      SolutionType: Unmanaged
+
+  # ── 4. Commit changes back to repo ────────────────────────────────────────
+  - script: |
+      git config user.email "devops@veldarr.com"
+      git config user.name  "Veldarr DevOps Bot"
+      git add src/$(SolutionName)/
+      git diff --staged --quiet || git commit -m "chore: export $(SolutionName) from Dev [skip ci]"
+      git push origin HEAD:$(Build.SourceBranchName)
+    displayName: Commit unpacked solution
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)

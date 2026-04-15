@@ -1,0 +1,47 @@
+{
+  "_readme": "Copy this file to ~/.copilot/mcp-config.json and replace all REPLACE_* placeholders via the Settings tab in the dashboard.",
+  "mcpServers": {
+    "dataverse": {
+      "command": "dataverse-mcp",
+      "args": [],
+      "env": {
+        "DATAVERSE_MCP_URL": "REPLACE_WITH_POWER_AUTOMATE_CONNECTION_URL"
+      }
+    },
+    "canvas": {
+      "command": "canvas-mcp",
+      "args": []
+    },
+    "copilot-studio": {
+      "command": "npx",
+      "args": ["-y", "@microsoft/copilot-studio-mcp", "REPLACE_WITH_YOUR_AGENT_MCP_URL"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "REPLACE_WITH_GITHUB_PAT"
+      }
+    },
+    "azure-devops": {
+      "command": "npx",
+      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "REPLACE_WITH_ADO_ORG_URL",
+        "AZURE_DEVOPS_PAT": "REPLACE_WITH_ADO_PAT"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Repositories\\Powerapps Stuff"]
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@kazuph/mcp-fetch"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"]
+    }
+  }
+}

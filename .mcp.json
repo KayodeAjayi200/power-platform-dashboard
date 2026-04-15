@@ -1,0 +1,56 @@
+{
+  "servers": {
+    "powerapps-canvas": {
+      "type": "stdio",
+      "command": "CanvasAuthoringMcpServer",
+      "args": []
+    },
+    "dataverse": {
+      "type": "stdio",
+      "command": "Microsoft.PowerPlatform.Dataverse.MCP",
+      "args": [
+        "--ConnectionUrl",
+        "${input:dataverseConnectionUrl}",
+        "--MCPServerName",
+        "DataverseMCPServer",
+        "--TenantId",
+        "${input:tenantId}",
+        "--EnableHttpLogging",
+        "true",
+        "--EnableMsalLogging",
+        "false",
+        "--Debug",
+        "false",
+        "--BackendProtocol",
+        "HTTP"
+      ]
+    },
+    "copilot-studio": {
+      "type": "stdio",
+      "command": "Microsoft.Agents.CopilotStudio.Mcp",
+      "args": [
+        "--remote-server-url",
+        "${input:copilotStudioAgentUrl}",
+        "--scopes",
+        "https://api.powerplatform.com/.default"
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "id": "tenantId",
+      "description": "Your Microsoft Entra Tenant ID (find it at make.powerapps.com → ⚙️ → Session details)",
+      "type": "promptString"
+    },
+    {
+      "id": "dataverseConnectionUrl",
+      "description": "Your Power Automate Dataverse connection URL (make.powerautomate.com → Connections → your Dataverse connection → copy browser URL)",
+      "type": "promptString"
+    },
+    {
+      "id": "copilotStudioAgentUrl",
+      "description": "Your Copilot Studio agent MCP URL (copilotstudio.microsoft.com → your agent → Channels → MCP Client → copy URL)",
+      "type": "promptString"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub Actions — Export, Unpack & Commit
+# Manually triggered from GitHub Actions UI.
+# Exports solution from Dev environment → unpacks → commits to branch.
+#
+# Required secrets (Settings → Secrets → Actions):
+#   PP_CLIENT_ID     — Entra app registration client ID
+#   PP_CLIENT_SECRET — Entra app client secret
+#   PP_TENANT_ID     — Azure tenant ID
+# ─────────────────────────────────────────────────────────────────────────────
+name: Export & Unpack Solution
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: "Unique solution name (e.g. MySolution)"
+        required: true
+      dev_environment_url:
+        description: "Dev environment URL (e.g. https://orgXXX.crm11.dynamics.com/)"
+        required: true
+
+jobs:
+  export-and-unpack:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install PAC CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Who Am I (verify auth)
+        uses: microsoft/powerplatform-actions/who-am-i@v1
+        with:
+          environment-url: ${{ github.event.inputs.dev_environment_url }}
+          app-id:          ${{ secrets.PP_CLIENT_ID }}
+          client-secret:   ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id:       ${{ secrets.PP_TENANT_ID }}
+
+      - name: Export unmanaged solution
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url:  ${{ github.event.inputs.dev_environment_url }}
+          app-id:           ${{ secrets.PP_CLIENT_ID }}
+          client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id:        ${{ secrets.PP_TENANT_ID }}
+          solution-name:    ${{ github.event.inputs.solution_name }}
+          solution-output-file: out/${{ github.event.inputs.solution_name }}.zip
+          managed: false
+
+      - name: Unpack solution
+        uses: microsoft/powerplatform-actions/unpack-solution@v1
+        with:
+          solution-file:   out/${{ github.event.inputs.solution_name }}.zip
+          solution-folder: src/${{ github.event.inputs.solution_name }}
+          solution-type:   Unmanaged
+          overwrite-files: true
+
+      - name: Commit unpacked solution
+        run: |
+          git config user.email "github-actions@veldarr.com"
+          git config user.name  "Veldarr GitHub Bot"
+          git add src/${{ github.event.inputs.solution_name }}/
+          git diff --staged --quiet || git commit -m "chore: export ${{ github.event.inputs.solution_name }} [skip ci]"
+          git push

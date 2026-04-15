@@ -1,0 +1,21 @@
+{
+  "comment": "Connection references and environment variables per environment. Referenced by pipelines during import.",
+  "EnvironmentVariables": [
+    {
+      "SchemaName": "veldarr_SharePointSiteUrl",
+      "Value": "https://veldarr.sharepoint.com/sites/DEV"
+    }
+  ],
+  "ConnectionReferences": [
+    {
+      "LogicalName": "veldarr_sharedcommondataserviceforapps",
+      "ConnectionId": "REPLACE_WITH_DEV_CONNECTION_ID",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+    },
+    {
+      "LogicalName": "veldarr_sharedSharepoint",
+      "ConnectionId": "REPLACE_WITH_DEV_SP_CONNECTION_ID",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+    }
+  ]
+}

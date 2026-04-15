@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE 3 — Deploy (managed) to Test then Prod
+# Called after build pipeline artifact is published.
+# Uses approval gates between stages.
+#
+# Required variables / service connections:
+#   PowerPlatformSPN       — Entra SPN with System Admin in all envs
+#   TestEnvironmentUrl     — https://orgXXX.crm11.dynamics.com/
+#   ProdEnvironmentUrl     — https://orgXXX.crm11.dynamics.com/
+#   SolutionName
+# ─────────────────────────────────────────────────────────────────────────────
+trigger: none       # Triggered by build pipeline via pipeline resource
+
+resources:
+  pipelines:
+    - pipeline: BuildPipeline
+      source: build-solution      # name of the build pipeline in ADO
+      trigger:
+        branches:
+          include:
+            - main
+
+pool:
+  vmImage: windows-latest
+
+stages:
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  STAGE 1 — Deploy to Test                                               ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  - stage: DeployTest
+    displayName: Deploy to Test
+    jobs:
+      - deployment: DeployToTest
+        displayName: Import managed solution → Test
+        environment: PowerPlatform-Test    # create in ADO Environments; add approvers here
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: PowerPlatformToolInstaller@2
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifactName: SolutionArtifacts
+                    targetPath: $(Pipeline.Workspace)\drop
+
+                - task: PowerPlatformImportSolution@2
+                  displayName: Import to Test
+                  inputs:
+                    authenticationType: PowerPlatformSPN
+                    PowerPlatformSPN: $(PowerPlatformSPN)
+                    Environment: $(TestEnvironmentUrl)
+                    SolutionInputFile: $(Pipeline.Workspace)\drop\$(SolutionName)_managed.zip
+                    ForceOverwrite: true
+                    PublishCustomizationsAfterImport: true
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  STAGE 2 — Deploy to Production (requires approval in ADO)              ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  - stage: DeployProd
+    displayName: Deploy to Production
+    dependsOn: DeployTest
+    jobs:
+      - deployment: DeployToProd
+        displayName: Import managed solution → Prod
+        environment: PowerPlatform-Prod    # add required approvers in ADO UI
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: PowerPlatformToolInstaller@2
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifactName: SolutionArtifacts
+                    targetPath: $(Pipeline.Workspace)\drop
+
+                - task: PowerPlatformImportSolution@2
+                  displayName: Import to Production
+                  inputs:
+                    authenticationType: PowerPlatformSPN
+                    PowerPlatformSPN: $(PowerPlatformSPN)
+                    Environment: $(ProdEnvironmentUrl)
+                    SolutionInputFile: $(Pipeline.Workspace)\drop\$(SolutionName)_managed.zip
+                    ForceOverwrite: true
+                    PublishCustomizationsAfterImport: true

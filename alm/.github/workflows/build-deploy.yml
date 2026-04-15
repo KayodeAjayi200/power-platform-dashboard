@@ -1,0 +1,118 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub Actions — Build & Deploy (managed)
+# On: PR to main → build only
+#     Push to main → build + deploy to Test, then Prod (with manual approval)
+# ─────────────────────────────────────────────────────────────────────────────
+name: Build & Deploy Solution
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**"]
+  pull_request:
+    branches: [main]
+    paths: ["src/**"]
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: "Unique solution name"
+        required: true
+      target_env_url:
+        description: "Target environment URL"
+        required: true
+
+env:
+  SOLUTION_NAME: ${{ github.event.inputs.solution_name || 'MySolution' }}
+
+jobs:
+  # ── Build ────────────────────────────────────────────────────────────────
+  build:
+    runs-on: windows-latest
+    outputs:
+      solution_name: ${{ steps.detect.outputs.solution_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed solution
+        id: detect
+        run: |
+          $changed = git diff --name-only HEAD^ HEAD | Where-Object { $_ -match "^src/" } |
+                     ForEach-Object { ($_ -split "/")[1] } | Select-Object -Unique -First 1
+          $name = if ($changed) { $changed } else { "${{ env.SOLUTION_NAME }}" }
+          echo "solution_name=$name" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Install PAC CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Pack managed solution
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: src/${{ steps.detect.outputs.solution_name }}
+          solution-file:   out/${{ steps.detect.outputs.solution_name }}_managed.zip
+          solution-type:   Managed
+
+      - name: Pack unmanaged solution
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: src/${{ steps.detect.outputs.solution_name }}
+          solution-file:   out/${{ steps.detect.outputs.solution_name }}_unmanaged.zip
+          solution-type:   Unmanaged
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: solution-artifacts
+          path: out/
+
+  # ── Deploy to Test (only on push to main) ────────────────────────────────
+  deploy-test:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: windows-latest
+    environment: PowerPlatform-Test      # add required reviewers in GitHub repo settings
+    steps:
+      - name: Install PAC CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: solution-artifacts
+          path: out/
+
+      - name: Import to Test
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url:  ${{ vars.TEST_ENVIRONMENT_URL }}
+          app-id:           ${{ secrets.PP_CLIENT_ID }}
+          client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id:        ${{ secrets.PP_TENANT_ID }}
+          solution-file:    out/${{ needs.build.outputs.solution_name }}_managed.zip
+          force-overwrite:  true
+          publish-changes:  true
+
+  # ── Deploy to Production (requires manual approval in GitHub) ─────────────
+  deploy-prod:
+    needs: [build, deploy-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: windows-latest
+    environment: PowerPlatform-Prod      # add required reviewers in GitHub repo settings
+    steps:
+      - name: Install PAC CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: solution-artifacts
+          path: out/
+
+      - name: Import to Production
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url:  ${{ vars.PROD_ENVIRONMENT_URL }}
+          app-id:           ${{ secrets.PP_CLIENT_ID }}
+          client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id:        ${{ secrets.PP_TENANT_ID }}
+          solution-file:    out/${{ needs.build.outputs.solution_name }}_managed.zip
+          force-overwrite:  true
+          publish-changes:  true

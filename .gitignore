@@ -1,0 +1,28 @@
+# Logs & sensitive data
+scripts/dashboard-log.json
+dashboard-log.json
+crash.log
+run-debug.ps1
+
+# User-specific settings (contain API keys / tokens)
+*.settings.json
+pp-dashboard-settings.json
+
+# Exported solution zips (large binary files)
+*.zip
+*.msapp
+
+# Unpacked solutions (checked in per-repo by the user, not here)
+solutions/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

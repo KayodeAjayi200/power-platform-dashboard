@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE 2 — Build (Pack managed solution)
+# Triggered on PR to main.  Packs /src/<SolutionName>/ into a managed zip
+# and publishes it as a build artifact ready for deployment.
+#
+# Required variables:
+#   SolutionName — unique solution name
+# ─────────────────────────────────────────────────────────────────────────────
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: windows-latest
+
+steps:
+  - task: PowerPlatformToolInstaller@2
+    displayName: Install PAC CLI
+
+  # ── Pack unmanaged (for dev use) ──────────────────────────────────────────
+  - task: PowerPlatformPackSolution@2
+    displayName: Pack unmanaged
+    inputs:
+      SolutionSourceFolder: $(Build.SourcesDirectory)\src\$(SolutionName)
+      SolutionOutputFile:   $(Build.ArtifactStagingDirectory)\$(SolutionName)_unmanaged.zip
+      SolutionType: Unmanaged
+
+  # ── Pack managed (for test/prod) ──────────────────────────────────────────
+  - task: PowerPlatformPackSolution@2
+    displayName: Pack managed
+    inputs:
+      SolutionSourceFolder: $(Build.SourcesDirectory)\src\$(SolutionName)
+      SolutionOutputFile:   $(Build.ArtifactStagingDirectory)\$(SolutionName)_managed.zip
+      SolutionType: Managed
+
+  # ── Publish artifacts ────────────────────────────────────────────────────
+  - task: PublishPipelineArtifact@1
+    displayName: Publish solution zips
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)
+      artifact: SolutionArtifacts
