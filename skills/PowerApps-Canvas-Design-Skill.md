@@ -4,15 +4,18 @@ description: Power Apps Canvas Apps UI/UX design guide — containers, responsiv
 license: MIT
 metadata:
   author: KayodeAjayi200
-  version: "2.1.0"
+  version: "2.2.0"
   organization: Veldarr
   date: April 2026
   abstract: >
     Best practices for building beautiful, well-designed Power Apps Canvas Apps. Covers structured
     layouts with containers, responsive design with breakpoints, modern Fluent UI controls and
-    theming, gallery and card designs (list vs grid, multi-view toggle, filter panels), and
-    navigation patterns (collapsible side menu, tab bar, hover/feedback micro-interactions).
-    Based on Tolu Victor's Power Apps UI/UX tutorial series.
+    theming, gallery and card designs (list vs grid, multi-view toggle, filter panels), navigation
+    patterns (collapsible side menu, tab bar, hover/feedback micro-interactions), Canvas Components
+    (reusable UI blocks and component libraries), centralised theme systems (App.Formulas + dark/
+    light mode), animated SVGs for UI, editable gallery tables with horizontal and vertical scroll,
+    and left navigation components with hamburger expand/collapse behaviour.
+    Based on Tolu Victor, Shane, and Reza Durrani Power Apps tutorial series.
 ---
 
 # Power Apps Canvas Apps — UI/UX Design Best Practices
@@ -1313,4 +1316,380 @@ If(DataCard.Required, "* ", "") & "Field Name"
 
 **Borders from data card level:**
 Change border colour by selecting multiple data cards (Ctrl+Click in the tree view), not the individual inputs. This sets the same style on all cards at once.
+
+
+---
+
+## 15. Canvas Components
+
+> A **component** is a reusable, self-contained group of controls you build once and drop into any screen — or any app. It is the Power Apps equivalent of a UI widget or custom control.
+
+### Why use components?
+- Change the component once → every screen using it updates automatically
+- Keeps your tree view clean — one node instead of dozens
+- Can be shared org-wide via a **component library**
+- Consistent headers, footers, navigation bars, and tool strips across all apps
+
+### Creating a component
+1. Open the **Tree view** panel → switch to the **Components** tab
+2. Click **New component** — a blank canvas appears (default 640×640)
+3. **Always name your component first** — naming controls is a best practice before adding anything
+4. Set the component's `Width` and `Height` to be **responsive**, not hard-coded:
+
+```powerfx
+// Make the component match the full height of whatever app it is inserted into.
+// Max() picks the larger of the current runtime height vs the design height.
+Component.Height = Max(App.Height, App.DesignHeight)
+
+// For a left navigation (20% of screen width):
+Component.Width  = Max(App.Width, App.DesignWidth) / 5
+```
+
+5. Add controls inside the component — use `Parent.Width` / `Parent.Height` for relative sizing
+6. Use `Parent.TemplateWidth` / `Parent.TemplateHeight` inside gallery templates
+
+### Custom Input Properties (send data IN to component)
+Input properties let a screen pass values into the component, like a parameter.
+
+```powerfx
+// In the component property panel → New custom property → Input
+// Data type: Text, Number, Boolean, Color, Screen, Record, Table, Image, etc.
+// Access it in any control inside the component:
+MyLabel.Text = ComponentName.MyInputProperty
+```
+
+Useful input property types:
+| Type | Use case |
+|---|---|
+| **Text** | Title text, screen name string |
+| **Number** | Badge count, size values |
+| **Boolean** | Show/hide a section, dark mode flag |
+| **Screen** | Which screen to navigate back to |
+| **Table** | Navigation items, list data |
+| **Color** | Theme colour from the parent screen |
+
+### Custom Output Properties (send data OUT from component)
+Output properties expose values from the component to its parent screen.
+
+```powerfx
+// In the component property panel → New custom property → Output
+// Set its formula to whatever the component wants to emit, e.g. the current width:
+MenuWidth = If(varMenuOpen, Parent.Width / 5, 70)
+
+// On the screen, read the output:
+Canvas.X     = MyNavComponent.MenuWidth
+Canvas.Width = Parent.Width - MyNavComponent.MenuWidth
+```
+
+### AccessAppScope — sharing variables between component and screen
+By default, a component cannot read or write app-level variables and collections.
+Turn on **Access App Scope** on the component to remove this restriction:
+
+```
+Component properties panel → Advanced → Access App Scope = On
+```
+
+```powerfx
+// With AccessAppScope ON, the component can now toggle an app variable:
+HamburgerIcon.OnSelect = Set(varMenuOpen, !varMenuOpen)
+```
+
+> ⚠️ **Limitation:** If `AccessAppScope = On`, the component **cannot** be placed into a component library. If you need both — redesign using input/output properties instead of shared variables.
+
+### Using `App.ActiveScreen.Name` in a component
+```powerfx
+// Auto-show the name of the current screen in a header label.
+// Coalesce falls back to "Home" if the property is not passed in.
+lblScreenTitle.Text = Coalesce(MyHeaderComponent.ScreenName, App.ActiveScreen.Name)
+```
+
+### Importing components between apps
+- **Copy into app** (independent copy): Components tab → three dots → **Import components** → pick the source app. Changes to the source do NOT flow through automatically.
+- **Component library** (live reference): Create a component library at `make.powerapps.com` → Apps → Component libraries. In any app, click **+** (Insert) → **Get more components** → import from the library. Library updates flow to all apps that reference it.
+
+### Component library workflow
+1. Go to `make.powerapps.com` → **Apps** → **Component libraries** → New
+2. Build or import your components here (screens are only for testing — they are not part of the app)
+3. In any canvas app → Insert panel → **Get more components** → pick your library
+4. The component is now a **live reference** — update the library, then refresh in the app to get the latest version
+
+---
+
+## 16. Centralised Theme System
+
+> Use a named formula in `App.Formulas` to define all colours in one place. Every control reads from this central object. Change a colour once → the whole app updates instantly, with no reload.
+
+### Approach A — App.Formulas (Recommended)
+```powerfx
+// In App → Formulas property, define your theme as a record:
+appTheme = {
+    brandPrimary:   RGBA(98,  0, 238, 1),   // Purple — main action colour
+    brandAccent:    RGBA(3, 218, 196, 1),    // Teal — secondary highlight
+    bgPage:         RGBA(18,  18, 18, 1),    // Near-black background
+    bgCard:         RGBA(30,  30, 30, 1),    // Slightly lighter card background
+    textPrimary:    RGBA(255, 255, 255, 1),  // White text
+    textSecondary:  RGBA(180, 180, 180, 1),  // Grey subtext
+    danger:         RGBA(207,  53,  53, 1)   // Red for errors/delete
+}
+
+// Any control anywhere in the app reads it like this:
+btnSave.Fill        = appTheme.brandPrimary
+lblPageTitle.Color  = appTheme.textPrimary
+conCard.Fill        = appTheme.bgCard
+```
+
+**Why App.Formulas is better than App.OnStart for themes:**
+- Formula results update immediately — no need to restart the app after changing a colour value
+- Named formulas are lazy (evaluated only when used), so no startup cost
+- Cleaner separation: theme definition vs startup data loading
+
+### Approach B — App.OnStart Variables (Alternative)
+```powerfx
+// In App → OnStart: set a global variable with two sub-records (light + dark)
+Set(globalTheme, {
+    light: {
+        bg:       RGBA(255, 255, 255, 1),
+        sidebar:  RGBA(240, 240, 240, 1),
+        text:     RGBA(30,  30,  30,  1)
+    },
+    dark: {
+        bg:       RGBA(18,  18,  18,  1),
+        sidebar:  RGBA(30,  30,  30,  1),
+        text:     RGBA(255, 255, 255, 1)
+    }
+})
+
+// Controls reference based on mode flag:
+Screen.Fill = If(varDarkMode, globalTheme.dark.bg, globalTheme.light.bg)
+```
+
+### Light / Dark mode toggle pattern
+```powerfx
+// A toggle button or icon sets the mode flag:
+ToggleButton.OnSelect = Set(varDarkMode, !varDarkMode)
+
+// All controls respond instantly because they reference the variable.
+// With App.Formulas approach, replace the hard-coded colour values with If(varDarkMode, ...) inside the record.
+```
+
+### Tool: powercolors.dev
+Free online tool that generates Power Apps colour palettes and exports them as ready-to-paste `App.Formulas` code. Use it to create consistent, accessible colour systems.
+
+---
+
+## 17. Animated SVGs for UI
+
+> SVG code can be used as the image source of a Power Apps **Image** control. Combine this with variables and layered real buttons to create smooth animations without any custom connectors.
+
+### Pattern: animated tab bar / toggle
+
+```
+Container (Horizontal)
+├── Image control        ← SVG code here (the animated background pill)
+├── Button 1             ← real Power Apps button, layered on top
+├── Button 2
+└── Button N
+```
+
+```powerfx
+// The image control's Image property receives raw SVG as a data URL.
+// The SVG changes based on a variable, creating the animation effect.
+imgTabBg.Image = "data:image/svg+xml;utf8," & EncodeUrl("<svg>...</svg>")
+
+// Each button sets a variable when tapped:
+btn1.OnSelect = Set(varActiveTab, 1)
+btn2.OnSelect = Set(varActiveTab, 2)
+
+// The SVG formula reads varActiveTab and shifts the pill position:
+// (Build the SVG string in Power Fx using If() or Switch() to change x/y/fill)
+```
+
+### AI-assisted SVG customisation
+When customising SVG-based components from YouTube or community sources:
+- Give Claude (or another AI) the existing YAML component code AND the prompt to change colours or add tabs
+- With full context provided, AI can generate working YAML on the first try
+- Without context (just a description), the AI-generated YAML rarely works in Power Apps
+
+### Tool: powerlips.com
+Pre-built animated Power Apps components — app shells, tab bars, animated toggles, progress indicators. Copy the YAML directly and paste into Power Apps Studio (Ctrl+V on the canvas). No coding required.
+
+### SVGRepo icons in galleries
+```powerfx
+// Download SVG code from svgrepo.com, store the SVG string as a column value.
+// Display as an image in a gallery using EncodeUrl():
+galItems.Template.imgIcon.Image = EncodeUrl(ThisItem.iconSvg)
+```
+
+---
+
+## 18. Editable Gallery Table with Horizontal & Vertical Scroll
+
+> A fully editable, scrollable data table built entirely in Power Apps — no premium connectors needed. Uses a vertical gallery inside a container with overflow scroll on both axes.
+
+### Overall structure
+```
+conTableWrapper (Vertical Container, HorizontalOverflow=Scroll, VerticalOverflow=Scroll)
+├── conHeaders (Horizontal Container)        ← column headers row
+│   ├── lblHeader1
+│   ├── lblHeader2
+│   └── lblHeader3
+└── galInventory (Vertical Gallery, blank layout, ShowScrollBar=Off)
+    └── Template (Horizontal Container)
+        ├── txtName      (Text control — read only)
+        ├── inpQty       (TextInput — editable)
+        ├── cmbCategory  (ComboBox — choice column)
+        └── numPrice     (NumberInput — numeric column)
+```
+
+### Gallery and template settings
+```powerfx
+// Template sizing — no padding, no shadow, flush rows:
+galInventory.TemplatePadding = 0
+galInventory.TemplateSize    = 40       // row height in pixels
+galInventory.ShowScrollbar   = false    // parent container handles scrolling
+
+// Template container: fill the full row, no extra padding:
+galInventory.Template.X      = 0
+galInventory.Template.Y      = 0
+galInventory.Template.Width  = Parent.TemplateWidth
+galInventory.Template.Height = Parent.TemplateHeight
+```
+
+### Horizontal scroll — make the gallery wider than the container
+```powerfx
+// Set MinimumWidth on the gallery to be wider than the screen.
+// This forces horizontal scroll on the parent container.
+galInventory.MinimumWidth = lastColumnControl.X + lastColumnControl.Width
+
+// On the parent container:
+conTableWrapper.HorizontalOverflow = Scroll
+```
+
+### Vertical scroll — let the container scroll, not the gallery
+```powerfx
+// Set the gallery height to exactly fit all its rows — no internal scrollbar.
+galInventory.MinimumHeight = galInventory.AllItemsCount * 40   // 40 = TemplateSize
+
+// On the parent container:
+conTableWrapper.VerticalOverflow = Scroll
+```
+
+### Column headers — keep aligned with gallery columns
+The header row must mirror the gallery column widths exactly.
+
+```powerfx
+// For each header label, point its width properties to the matching gallery control:
+lblHeader1.FillPortions  = galControl1.FillPortions    // if using flexible-width columns
+lblHeader1.Width         = galControl1.Width           // if using fixed-width columns
+lblHeader1.MinimumWidth  = galControl1.MinimumWidth    // for flexible-width minimum
+
+// Set the same Gap on the header container as on the gallery template container.
+// Set the header container's MinimumWidth to the same value as galInventory.MinimumWidth.
+```
+
+### Fixed vs flexible column widths
+- **Fixed width:** `FlexibleWidth = Off` + explicit `Width` value — use for columns that must not shrink (e.g. checkboxes, action buttons)
+- **Flexible width:** `FlexibleWidth = On` + `FillPortions` — columns share remaining space proportionally
+
+### Theme-based header colour
+```powerfx
+// Apply the app theme colour to the header row fill:
+conHeaders.Fill = App.Theme.Colors.Primary
+```
+
+---
+
+## 19. Left Navigation Component — Hamburger Expand/Collapse
+
+> A professional collapsing left sidebar — similar to the Power Automate / Power Apps maker portal navigation. Built as a component library item for reuse across apps.
+
+### Responsive component dimensions
+```powerfx
+// Component height = full app height (works for both phone and tablet):
+LeftNavComponent.Height = Max(App.Height, App.DesignHeight)
+
+// Component width = 20% of app width (closed state = 70px, set via output property):
+LeftNavComponent.Width  = LeftNavComponent_1.MenuWidth
+```
+
+### Hamburger icon (toggle)
+```powerfx
+// Sets a local variable to open or close the menu:
+hamburgerIcon.OnSelect = Set(varMenuOpen, !varMenuOpen)
+
+// Output property reports the current width to the parent screen:
+MenuWidth = If(varMenuOpen, Max(App.Width, App.DesignWidth) / 5 + 40, 70)
+```
+
+### Nav gallery inside the component
+```powerfx
+// Gallery Y: sits directly below the hamburger icon
+galNav.Y      = hamburgerIcon.Y + hamburgerIcon.Height
+
+// Gallery width: fill the component
+galNav.Width  = Parent.Width
+
+// Gallery height: fill remaining space below the hamburger
+galNav.Height = Parent.Height - hamburgerIcon.Height
+```
+
+### Input property — nav items table
+```powerfx
+// Define input property of type Table with schema: {title, screen, icon}
+// Default sample values (used at design time):
+NavItems = Table(
+    {title: "Home",    screen: App.ActiveScreen, icon: Icon.Home},
+    {title: "Tasks",   screen: App.ActiveScreen, icon: Icon.DetailList}
+)
+
+// Gallery items:
+galNav.Items = LeftNavComponent.NavItems
+
+// Labels and icons inside the template:
+icoNavItem.Icon      = ThisItem.icon
+lblNavTitle.Text     = ThisItem.title
+lblNavTitle.PaddingLeft = 70    // pushes text past the icon area (70px = closed width)
+
+// Navigate on tap — also reset the menu to closed:
+icoNavItem.OnSelect = Navigate(ThisItem.screen, CoverRight); Set(varMenuOpen, false)
+```
+
+### Selection highlight bar (rectangle in template)
+```powerfx
+// A thin rectangle on the left edge of each gallery row.
+// Only shows when the item is the active screen.
+rectIndicator.Fill   = If(ThisItem.screen = App.ActiveScreen, App.Theme.Colors.Primary, Transparent)
+rectIndicator.Width  = 4
+rectIndicator.Height = Parent.TemplateHeight
+rectIndicator.X      = 0
+```
+
+### Connecting component output to screen layout
+The screen canvas must move right when the menu opens.
+
+```powerfx
+// A Canvas control (from a Scrollable Screen template) holds all screen content.
+// Its X and Width respond to the menu width output property:
+conPageContent.X     = LeftNavComponent_1.MenuWidth
+conPageContent.Width = Parent.Width - LeftNavComponent_1.MenuWidth
+```
+
+### Initialising nav data in App.OnStart
+```powerfx
+// Build the navigation collection once on app start.
+// Use this collection as the NavItems input property on every screen.
+App.OnStart = ClearCollect(colNav,
+    {title: "Home",    screen: HomeScreen,    icon: Icon.Home},
+    {title: "Tasks",   screen: TaskScreen,    icon: Icon.DetailList},
+    {title: "Details", screen: DetailScreen,  icon: Icon.DocumentWithContent}
+)
+
+// On each screen, set the component's NavItems input property:
+LeftNavComponent_1.NavItems = colNav
+```
+
+### Component library best practices
+- Store all reusable navigation and header components in a dedicated **component library** (not inside individual apps)
+- Test components using the screens inside the component library editor
+- When using `AccessAppScope = On` on a component, it **cannot** be published to a component library — redesign using input/output properties instead
 

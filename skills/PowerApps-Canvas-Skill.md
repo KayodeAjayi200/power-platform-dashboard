@@ -1083,3 +1083,193 @@ txtInput.BorderRadius = 5
 txtInput.Font = "Lato", Arial
 ```
 
+
+---
+
+## Canvas Components — Power Fx Patterns
+
+### Component input and output property syntax
+
+```powerfx
+// Reading an input property inside the component:
+lblTitle.Text = MyComponent.HeaderTitle
+
+// Reading an output property from the screen:
+conContent.X = MyNavComponent.MenuWidth
+```
+
+### AccessAppScope — read/write app variables from inside a component
+```powerfx
+// Enable in component properties: AccessAppScope = On
+// Then the component can toggle app-level variables:
+hamburgerIcon.OnSelect = Set(varMenuOpen, !varMenuOpen)
+// And read app collections:
+galItems.Items = colNavItems
+```
+
+> ⚠️ AccessAppScope = On prevents the component from being added to a component library.
+
+### Custom functions in components (Experimental — Enhanced Component Properties)
+Enable in **Settings → Advanced → Enhanced Component Properties**.
+```powerfx
+// Define an output property with parameters — creates a reusable "function":
+// Property: IsCurrency(CurrencyText: Text)
+IsCurrency = IsMatch(CurrencyText, "\$?\d+(,\d{3})*(\.\d{2})?")
+
+// Call it from any screen:
+MyUtils.IsCurrency(txtAmount.Text)   // returns true/false
+```
+
+---
+
+## Centralised Theme — App.Formulas Pattern
+
+```powerfx
+// In App → Formulas: define a named formula (not a variable).
+// This updates instantly — no app reload required.
+appTheme = {
+    primary:   RGBA(98,  0,  238, 1),    // Main brand colour
+    accent:    RGBA(3,  218, 196, 1),    // Secondary highlight
+    bgDark:    RGBA(18,  18,  18,  1),   // Dark background
+    bgLight:   RGBA(255, 255, 255, 1),   // Light background
+    text:      RGBA(255, 255, 255, 1),   // Text on dark background
+    subtext:   RGBA(180, 180, 180, 1)    // Muted text
+}
+
+// Any control reads it directly — no Set(), no OnStart:
+btnSubmit.Fill       = appTheme.primary
+lblSection.Color     = appTheme.text
+Screen.Fill          = appTheme.bgDark
+```
+
+### Dark / light mode toggle
+```powerfx
+// App.OnStart initialise the flag:
+App.OnStart = Set(varDarkMode, false)
+
+// Toggle button:
+btnTheme.OnSelect = Set(varDarkMode, !varDarkMode)
+
+// Each control switches based on the flag:
+Screen.Fill = If(varDarkMode, RGBA(18, 18, 18, 1), RGBA(255, 255, 255, 1))
+```
+
+---
+
+## Editable Gallery Table — H&V Scroll Formulas
+
+### Horizontal scroll width
+```powerfx
+// Set on the gallery's MinimumWidth property.
+// Uses the last visible column's position + its width to compute total table width.
+galTable.MinimumWidth = lastColumn.X + lastColumn.Width
+
+// Parent container overflow:
+conWrapper.HorizontalOverflow = Scroll
+```
+
+### Vertical scroll height
+```powerfx
+// Gallery height spans all rows — no internal scrollbar.
+galTable.MinimumHeight = galTable.AllItemsCount * 40   // 40 = TemplateSize in pixels
+galTable.ShowScrollbar = false
+
+// Parent container handles the scroll:
+conWrapper.VerticalOverflow = Scroll
+```
+
+### Header alignment with gallery columns
+```powerfx
+// For each header label, mirror the exact gallery control's width settings.
+// Flexible-width column (proportional):
+lblHeader.FillPortions = galControl.FillPortions
+
+// Fixed-width column:
+lblHeader.Width        = galControl.Width
+lblHeader.MinimumWidth = galControl.MinimumWidth
+
+// Set the same Gap value on both the header container and the gallery template container.
+```
+
+---
+
+## SVG Icons and Animated Images
+
+### EncodeUrl for SVG icon images in galleries
+```powerfx
+// Store the SVG string in a Dataverse/SharePoint column or Table() record.
+// Display it in an Image control:
+imgIcon.Image = EncodeUrl(ThisItem.iconSvg)
+// or for inline data URL:
+imgIcon.Image = "data:image/svg+xml;utf8," & EncodeUrl("<svg>...</svg>")
+```
+
+### SVG animated tab bar — variable-driven
+```powerfx
+// The SVG background shifts based on which tab is active.
+// Build the SVG string dynamically:
+imgTabBg.Image = "data:image/svg+xml;utf8," &
+    EncodeUrl("<svg xmlns='http://www.w3.org/2000/svg'><rect x='" &
+    Switch(varActiveTab, 1, "0", 2, "90", 3, "180") &
+    "' y='5' width='80' height='40' rx='20' fill='#6200EE'/></svg>")
+```
+
+---
+
+## Dashboard UI Patterns
+
+### Current user and timestamp
+```powerfx
+// Display the current user's full name:
+lblUser.Text = User().FullName
+
+// Display the current time (short format):
+lblTime.Text = Text(Now(), DateTimeFormat.ShortTime)
+```
+
+### Number formatting (string → formatted number)
+```powerfx
+// Convert a text number to a number, then format with comma thousands separator:
+lblTotal.Text = Text(Value(ThisItem.total), "###,###")
+```
+
+### Bar chart from a gallery
+```powerfx
+// Each gallery item is a bar. Height is random (for demo) or from data.
+// The bar fills upward from the bottom of the container.
+barHeight       = RandomBetween(30, 150)   // replace with real data column
+btnBar.Height   = barHeight
+btnBar.Y        = conChart.Height - barHeight   // anchors bar to the bottom
+btnBar.Width    = 40
+btnBar.Fill     = appTheme.primary
+```
+
+---
+
+## Left Navigation — Key Formulas
+
+### Component width output property
+```powerfx
+// Expose current width to the parent screen:
+MenuWidth = If(varMenuOpen, Max(App.Width, App.DesignWidth) / 5 + 40, 70)
+```
+
+### Page canvas responds to nav width
+```powerfx
+// Canvas or container that holds screen content:
+conPage.X     = LeftNav_1.MenuWidth
+conPage.Width = Parent.Width - LeftNav_1.MenuWidth
+```
+
+### Active screen highlight
+```powerfx
+// Highlight the nav item whose screen matches the current screen:
+rectIndicator.Fill = If(ThisItem.screen = App.ActiveScreen, App.Theme.Colors.Primary, Transparent)
+```
+
+### Nav item selection and navigation
+```powerfx
+// Navigate and reset menu closed in one OnSelect:
+icoNavItem.OnSelect = Navigate(ThisItem.screen, CoverRight); Set(varMenuOpen, false)
+```
+
