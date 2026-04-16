@@ -1472,9 +1472,6 @@ ToggleButton.OnSelect = Set(varDarkMode, !varDarkMode)
 // With App.Formulas approach, replace the hard-coded colour values with If(varDarkMode, ...) inside the record.
 ```
 
-### Tool: powercolors.dev
-Free online tool that generates Power Apps colour palettes and exports them as ready-to-paste `App.Formulas` code. Use it to create consistent, accessible colour systems.
-
 ---
 
 ## 17. Animated SVGs for UI
@@ -1510,12 +1507,9 @@ When customising SVG-based components from YouTube or community sources:
 - With full context provided, AI can generate working YAML on the first try
 - Without context (just a description), the AI-generated YAML rarely works in Power Apps
 
-### Tool: powerlips.com
-Pre-built animated Power Apps components — app shells, tab bars, animated toggles, progress indicators. Copy the YAML directly and paste into Power Apps Studio (Ctrl+V on the canvas). No coding required.
-
-### SVGRepo icons in galleries
+### SVG icons in galleries
 ```powerfx
-// Download SVG code from svgrepo.com, store the SVG string as a column value.
+// Store the SVG string as a column value in your data source.
 // Display as an image in a gallery using EncodeUrl():
 galItems.Template.imgIcon.Image = EncodeUrl(ThisItem.iconSvg)
 ```
