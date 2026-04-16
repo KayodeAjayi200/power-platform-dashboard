@@ -309,6 +309,9 @@ Copy-Item "$repoRoot\skills\PowerApps-Canvas-Skill.md" `
           "$skillsBase\powerapps-canvas\SKILL.md" -Force
 Copy-Item "$repoRoot\skills\PowerApps-Canvas-Design-Skill.md" `
           "$skillsBase\powerapps-canvas-design\SKILL.md" -Force
+New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-delegation" | Out-Null
+Copy-Item "$repoRoot\skills\PowerApps-Delegation-Skill.md" `
+          "$skillsBase\powerapps-delegation\SKILL.md" -Force
 Copy-Item "$repoRoot\AGENT_SKILL.md" `
           "$skillsBase\power-platform-dashboard\SKILL.md" -Force
 
@@ -407,6 +410,7 @@ This repo includes reference skill files for common Power Platform topics:
 |---|---|
 | `skills/PowerApps-Canvas-Skill.md` | Writing or debugging Canvas App controls, Power Fx formulas, components |
 | `skills/PowerApps-Canvas-Design-Skill.md` | UI/UX design — containers, responsive layouts, Fluent UI, gallery cards, filter panels, navigation |
+| `skills/PowerApps-Delegation-Skill.md` | Delegation warnings, Filter/Search formulas on large data sources, data correctness at scale |
 | `AGENT_SKILL.md` (this file) | Setting up tools, installing MCP servers, onboarding a new machine |
 
 ---
