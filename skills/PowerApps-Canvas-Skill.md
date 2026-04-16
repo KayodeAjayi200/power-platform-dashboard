@@ -711,3 +711,375 @@ The AI syncs current state → identifies your changes → restores previous cod
 - **Validate generated code** — always review `.pa.yaml` files for org compliance before publishing
 
 > ⚠️ AI code generation makes a best-effort attempt at production-ready, accessible, secure code — but **you are responsible** for final review and validation.
+
+---
+
+## Custom Forms — Grid Container Pattern
+
+> Instead of using the default `EditForm` control with data cards, you can build a form completely from scratch using a **Grid Container**. This gives you full visual control and is the recommended approach for complex or branded forms.
+
+### When to use this vs EditForm
+
+| | EditForm (Classic) | Custom Grid Form |
+|---|---|---|
+| Setup speed | Fast | Slower upfront |
+| Visual control | Limited | Full |
+| Dark themes | Works | Works |
+| Column spanning | No | Yes (RowStart/End, ColumnStart/End) |
+| Patch required | No (SubmitForm) | Yes (manual Patch) |
+| AI code gen | Supported | Supported |
+
+Use **EditForm** for simple CRUD with minimal design requirements. Use **Grid Container** when you need precise multi-column layouts or full design control.
+
+### Step 1 — Enable Grid Container
+
+In Power Apps Studio: **Settings → Support → Latest Authoring Version**. Grid Container then appears in the Insert panel.
+
+### Step 2 — Build the screen structure
+
+```
+Screen
+└── conRoot (Vertical Container, fills screen)
+    ├── conHeader (Horizontal Container, 48px)
+    └── conBody (Vertical Container, fills remaining space, OverflowY=Scroll)
+        └── conFormGrid (Grid Container, Columns=2, Rows=9, Gap=12, Padding=20)
+            ├── [controls placed by grid position]
+```
+
+Set the body container:
+```powerfx
+// The body scrolls vertically if the form is taller than the screen.
+conBody.OverflowY = Overflow.Scroll
+
+// FlexibleHeight must be Off on the form grid container so scroll works correctly.
+conFormGrid.FlexibleHeight = Off
+```
+
+### Step 3 — Place form fields in the grid
+
+Each control inside the Grid Container gets its position from **Grid Position** properties (not X/Y):
+
+```powerfx
+// A two-column, two-row text input that spans both columns:
+// e.g., a "Notes" text area
+txtNotes.ColumnStart = 1
+txtNotes.ColumnEnd   = 3   // spans columns 1 and 2 (ends after column 2)
+txtNotes.RowStart    = 4
+txtNotes.RowEnd      = 6   // spans rows 4 and 5 (gives more vertical space)
+```
+
+### Step 4 — Required field label with asterisk (HTML Text)
+
+Use an **HTML Text** control for field labels that need a red asterisk — this is more performant than two separate controls:
+
+```powerfx
+// Show the asterisk in bold red alongside the label name.
+// The font tag makes the asterisk red; the rest is the field label.
+htmlLabel.HtmlText = "<font color='red'><b>*</b></font> Candidate Name"
+```
+
+For optional fields, just use a plain label.
+
+### Step 5 — Validation with varSubmit
+
+Track whether the user has attempted to submit yet. This prevents showing red errors before the user has done anything:
+
+```powerfx
+// Save button OnSelect:
+// 1. Mark that user tried to submit (this triggers validation highlights)
+// 2. Check if required fields are filled in
+// 3. Only Patch if everything is valid
+Set(varSubmit, true);
+If(
+    IsBlank(txtCandidateName.Value) || IsBlank(drpRole.Selected.Value),
+    Notify("Please fill in all required fields.", NotificationType.Error),
+    // If valid, save the record to SharePoint / Dataverse:
+    Patch(JobApplications, Defaults(JobApplications), {
+        Title:        txtCandidateName.Value,
+        Role:         {Value: drpRole.Selected.Value},   // Choice column
+        StartDate:    datStartDate.SelectedDate,          // Date column
+        HiringManager: {
+            Claims:      "i:0#.f|membership|" & ppHiringManager.Selected.mail,
+            DisplayName: ppHiringManager.Selected.displayName,
+            Email:       ppHiringManager.Selected.mail
+        }
+    });
+    Notify("Record saved.", NotificationType.Success);
+    Concurrent(
+        // Reset every control back to blank after saving
+        Reset(txtCandidateName),
+        Reset(drpRole),
+        Reset(datStartDate),
+        Reset(ppHiringManager),
+        // Reset the validation flag so errors disappear
+        Set(varSubmit, false)
+    )
+)
+```
+
+Show a red border on a field only after the user tried to submit AND the field is empty:
+
+```powerfx
+// Set these on each required TextInput:
+txtCandidateName.BorderThickness = If(varSubmit && IsBlank(txtCandidateName.Value), 1, 0)
+txtCandidateName.BorderColor     = Red
+
+// For live validation as the user types (instead of only on submit),
+// set the control's Trigger property:
+txtCandidateName.Trigger = TriggerOutput.KeyPress
+```
+
+### Patch formats for different column types
+
+```powerfx
+// Text column — pass the value directly
+Title: txtTitle.Value
+
+// Choice column (SharePoint or Dataverse OptionSet)
+Status: {Value: drpStatus.Selected.Value}
+
+// Date column
+StartDate: datStartDate.SelectedDate
+
+// Single person/group column (SharePoint)
+HiringManager: {
+    Claims:      "i:0#.f|membership|" & txtPersonEmail.Value,
+    DisplayName: txtPersonName.Value,
+    Email:       txtPersonEmail.Value
+}
+
+// Multi-select person column (SharePoint — see People Picker section below)
+Stakeholders: ForAll(cmbStakeholders.SelectedItems, {
+    Claims:      "i:0#.f|membership|" & mail,
+    DisplayName: displayName,
+    Email:       mail
+})
+```
+
+---
+
+## People Picker — Office 365 Users Connector
+
+> Power Apps does not have a built-in people picker control. The recommended approach uses the **Modern Combo Box** + the **Office365Users** connector to search the organisation's directory.
+
+### Prerequisites
+
+- Add the **Office 365 Users** connector in Power Apps (Data panel → Add data → Office 365 Users)
+- Enable **Modern Controls & Themes**: Settings → Updates → Modern Controls & Themes → On
+
+### Single-select people picker
+
+Insert a **Modern Combo Box**. Set these properties:
+
+```powerfx
+// Items: search the directory as the user types.
+// SearchUserV2 accepts {searchTerm, isSearchTermRequired, top}.
+// Self.SearchText is the text the user is typing into the combo box.
+ComboBox.Items = Office365Users.SearchUserV2(
+    {
+        searchTerm:          Self.SearchText,
+        isSearchTermRequired: false,   // Show results even when search box is empty
+        top:                 999       // Return up to 999 results
+    }
+).value
+
+// Show the person's full name in the dropdown list
+ComboBox.ItemLabelText = ThisItem.displayName
+
+// Single-select mode
+ComboBox.SelectMultiple = false
+```
+
+When saving to a SharePoint person column:
+
+```powerfx
+// Patch format for a single-person SharePoint column.
+// SharePoint needs the Claims format to identify the user in the directory.
+HiringManager: If(
+    IsBlank(cmbPerson.Selected.mail),
+    Blank(),   // Don't write anything if no person is selected
+    {
+        Claims:      "i:0#.f|membership|" & cmbPerson.Selected.mail,
+        DisplayName: cmbPerson.Selected.displayName,
+        Email:       cmbPerson.Selected.mail
+    }
+)
+```
+
+### Multi-select people picker
+
+For a SharePoint column that accepts multiple people (a "Person or Group" column set to Allow multiple selections):
+
+```powerfx
+// Items: same as single-select — search the directory as user types
+ComboBox.Items = Office365Users.SearchUserV2(
+    {searchTerm: Self.SearchText, isSearchTermRequired: false, top: 999}
+).value
+
+// Allow selecting more than one person
+ComboBox.SelectMultiple = true
+
+// ItemLabelText: show each person's name in the dropdown
+ComboBox.ItemLabelText = ThisItem.displayName
+```
+
+For the **default selected items** (pre-populate when editing an existing record):
+
+```powerfx
+// When editing, read the existing Stakeholders from the record and
+// look up each person's directory entry to show them as already-selected.
+ComboBox.DefaultSelectedItems = ForAll(
+    ThisItem.Stakeholders,           // The existing person list on the record
+    // For each person, find their directory entry by searching their email
+    First(
+        Office365Users.SearchUserV2(
+            {searchTerm: ThisRecord.Email, isSearchTermRequired: true, top: 1}
+        ).value
+    )
+)
+```
+
+Patch format for saving multiple people:
+
+```powerfx
+// Save all selected people to the Stakeholders column.
+// ForAll loops through every selected item in the combo box.
+Stakeholders: ForAll(
+    cmbStakeholders.SelectedItems,
+    {
+        Claims:      "i:0#.f|membership|" & mail,
+        DisplayName: displayName,
+        Email:       mail
+    }
+)
+```
+
+### ⚠️ Known bug — Multi-select combo box inside a Form control
+
+**Symptom:** When a modern multi-select combo box is placed inside an `EditForm` control, user selections disappear after the user searches for more names.
+
+**Root cause:** The form control resets the combo box's state when items reload.
+
+**Workaround — place the combo box outside the form:**
+
+1. Delete the combo box from inside the form's data card.
+2. Insert a **new** Modern Combo Box **directly on the screen** (outside the form).
+3. Position it visually over where the data card is — make it look part of the form.
+4. Set the form data card's **Update** property to point to the external combo box:
+   ```powerfx
+   // Data card Update property — reads from the external combo box on screen
+   ForAll(cmbStakeholders.SelectedItems, {
+       Claims:      "i:0#.f|membership|" & mail,
+       DisplayName: displayName,
+       Email:       mail
+   })
+   ```
+5. When navigating to the form screen, reset the external combo box to clear any previous selections:
+   ```powerfx
+   // In the button or gallery OnSelect that navigates to this form screen:
+   Reset(cmbStakeholders)
+   ```
+
+---
+
+## Modern Combo Box — SearchText & Server-Side Filtering
+
+> The Modern Combo Box (requires Latest Authoring Version + Modern Controls & Themes) has a `SearchText` output property — the text the user is currently typing. Use this to filter data **on the server** as the user types, instead of loading everything upfront.
+
+### The 800-item limit is lifted
+
+The old hard limit of 800 items is removed in the updated Modern Combo Box. The new limit is whatever your app's **Data Row Limit** is set to (Settings → General → Data Row Limit, max 2000).
+
+> ⚠️ Even with 2000 rows, you should still use `SearchText` to filter server-side and return only relevant results — loading 2000 rows into a combo box is slow.
+
+### Server-side filtering with SharePoint
+
+```powerfx
+// SharePoint: use StartsWith — this IS delegable.
+// Search() is NOT delegable on SharePoint — avoid it.
+// Self.SearchText is what the user is typing.
+ComboBox.Items = Filter(
+    ProjectsList,
+    StartsWith(Title, Self.SearchText)
+)
+```
+
+### Server-side filtering with Dataverse
+
+```powerfx
+// Dataverse: Search() IS fully delegable — use it.
+// "cr123_name" is the logical column name (lowercase with prefix).
+ComboBox.Items = Search(Projects, Self.SearchText, "cr123_name")
+```
+
+### Custom display text in the dropdown
+
+Use `ItemLabelText` to show any combination of columns in the dropdown list:
+
+```powerfx
+// Show the project name and its code in the combo box dropdown.
+// Concatenate combines two text values.
+ComboBox.ItemLabelText = Concatenate(ThisItem.Title, " (", ThisItem.ProjectCode, ")")
+```
+
+---
+
+## Form Control Styling Patterns
+
+### Input hover and focus states
+
+Apply consistent hover/press styling to all inputs so they feel interactive:
+
+```powerfx
+// HoverFill: a subtle highlight when hovering
+txtInput.HoverFill         = RGBA(255, 255, 255, 0.1)   // white at 10% opacity
+
+// HoverBorderColor: lock border colour on hover (prevents it changing to default)
+txtInput.HoverBorderColor  = Self.BorderColor
+
+// PressedFill: slightly stronger fill when tapped/clicked
+txtInput.PressedFill       = RGBA(255, 255, 255, 0.2)   // white at 20% opacity
+```
+
+### Border thickness by theme
+
+```powerfx
+// Light theme: thin borders (1px normal, 2px focused)
+txtInput.BorderThickness = 1
+txtInput.FocusedBorderThickness = 2
+
+// Dark theme: slightly thicker (2px normal, 3px focused)
+txtInput.BorderThickness = 2
+txtInput.FocusedBorderThickness = 3
+```
+
+### ComboBox — removing the dotted focus border
+
+When a Combo Box is opened, it shows a dotted focus border by default. Remove it:
+
+```powerfx
+// Hide the dotted border that appears around the combo box when opened
+cmbInput.FocusBorderThickness = 0
+
+// Make the dropdown chevron background invisible (cleaner look)
+cmbInput.ChevronBackground    = Transparent
+
+// Remove the blue/coloured selection highlight behind selected items
+cmbInput.SelectionFill        = Transparent
+```
+
+### Border radius on text inputs
+
+```powerfx
+// Round the corners of text inputs — 5px is subtle, 20px is pill-shaped
+txtInput.BorderRadius = 5
+```
+
+### Safe web fonts with fallback
+
+```powerfx
+// Always include a fallback font in case the first is not available.
+// Comma separates the main font from the fallback.
+txtInput.Font = "Lato", Arial
+```
+

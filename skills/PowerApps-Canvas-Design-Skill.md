@@ -4,7 +4,7 @@ description: Power Apps Canvas Apps UI/UX design guide — containers, responsiv
 license: MIT
 metadata:
   author: KayodeAjayi200
-  version: "2.0.0"
+  version: "2.1.0"
   organization: Veldarr
   date: April 2026
   abstract: >
@@ -1014,3 +1014,303 @@ chevronIcon.Icon = If(varSectionExpanded, Icon.ChevronUp, Icon.ChevronDown)
 ```powerfx
 rowBg.Fill = If(Mod(ThisItem.ItemNumber, 2) = 0, SurfaceColor, White)
 ```
+
+---
+
+## 11. Grid Container — Row/Column Layout
+
+> **What is it?** Grid Container is a newer layout control that positions children on a precise row-and-column grid — like a spreadsheet or CSS Grid. It is NOT a replacement for Horizontal/Vertical Containers; it **complements** them. Use it for forms and card grids where you need precise multi-column placement.
+
+### How to enable it
+
+Go to **Settings → Support → Latest Authoring Version** in Power Apps Studio. Grid Container becomes available in the Insert panel once enabled.
+
+### Key properties
+
+| Property | What it does |
+|---|---|
+| `Rows` | Number of rows in the grid |
+| `Columns` | Number of columns in the grid |
+| `Gap` | Pixel spacing between every cell (both horizontal and vertical) |
+| `PaddingTop / PaddingBottom / PaddingLeft / PaddingRight` | Inner padding around the whole grid |
+| `Fill` | Background colour of the grid area |
+| `BorderRadius` | Rounds the corners (set to 50 for a fully circular/pill shape on narrow containers) |
+| `DropShadow` | Adds a card-like shadow (None / Light / Regular / Bold) |
+
+### Grid Position — how children are placed
+
+Every control **inside** a Grid Container has four Grid Position properties instead of the usual X/Y/Width/Height:
+
+| Property | Meaning |
+|---|---|
+| `ColumnStart` | Which column the control starts in (1 = leftmost) |
+| `ColumnEnd` | Which column the control ends **after** (so ColumnStart=1, ColumnEnd=3 spans 2 columns) |
+| `RowStart` | Which row the control starts in (1 = topmost) |
+| `RowEnd` | Which row the control ends **after** |
+
+> The grid positions the control automatically — you do not need to set X, Y, Width, or Height on children of a Grid Container.
+
+### Pattern 1 — Home screen card grid (2 × 2)
+
+Use a Grid Container with 2 rows and 2 columns to create a dashboard-style home screen:
+
+```
+GridContainer (Rows=2, Columns=2, Gap=20, Padding=20)
+├── conCard1 (VerticalContainer) → ColumnStart=1, ColumnEnd=2, RowStart=1, RowEnd=2
+│   ├── imgCard1 (Image)
+│   └── btnCard1 (Button)
+├── conCard2 (VerticalContainer) → ColumnStart=2, ColumnEnd=3, RowStart=1, RowEnd=2
+├── conCard3 (VerticalContainer) → ColumnStart=1, ColumnEnd=2, RowStart=2, RowEnd=3
+└── conCard4 (VerticalContainer) → ColumnStart=2, ColumnEnd=3, RowStart=2, RowEnd=3
+```
+
+Each card container holds an icon/image and a label or button — no absolute positioning needed.
+
+### Pattern 2 — Data entry form (2 columns × N rows)
+
+A form with two-column layout, where some fields (like Notes) span both columns:
+
+```
+GridContainer (Rows=9, Columns=2, Gap=12, Padding=20)
+│
+├── [Row 1, Col 1-2] — Section header label (spans both columns)
+│   ColumnStart=1, ColumnEnd=3, RowStart=1, RowEnd=2
+│
+├── [Row 2, Col 1] — First Name field
+│   ColumnStart=1, ColumnEnd=2, RowStart=2, RowEnd=3
+│
+├── [Row 2, Col 2] — Last Name field
+│   ColumnStart=2, ColumnEnd=3, RowStart=2, RowEnd=3
+│
+├── [Row 3, Col 1-2] — Notes (textarea, spans both columns + 2 rows)
+│   ColumnStart=1, ColumnEnd=3, RowStart=3, RowEnd=5
+│
+└── [Row 5, Col 2] — Save button (right-aligned)
+    ColumnStart=2, ColumnEnd=3, RowStart=5, RowEnd=6
+```
+
+### How Grid Container fits with H/V Containers
+
+```
+Screen
+└── conRoot (Vertical Container — full screen)
+    ├── conHeader (Horizontal Container — header bar)
+    └── conBody (Vertical Container — scrollable main area)
+        └── conFormGrid (Grid Container — the actual form layout)
+            ├── [form controls placed by grid position]
+```
+
+Grid Container handles the **internal form layout**. Horizontal/Vertical Containers handle the **page structure** around it.
+
+### Design tips
+
+- Set the Grid Container's `OverflowY = Scroll` (on the parent Vertical Container) if the form is taller than the screen.
+- Use `Gap = 16` for tight forms; `Gap = 32` for card-grid dashboards.
+- Setting `BorderRadius = 8` on the Grid Container gives it a modern card look.
+- To **test responsiveness** at design time: use the size picker in Power Apps Studio (Large / Medium / Small preview buttons at top right of the canvas).
+
+---
+
+## 12. Responsive Breakpoints — Screen.Size
+
+> Power Apps has a built-in `Screen.Size` property that tells you how wide the screen is. Use it to show/hide controls or change layouts based on device size — without writing complex formulas.
+
+### Screen.Size values
+
+| Value | Meaning | Typical device |
+|---|---|---|
+| `1` | Small (< 600 px wide) | Phone / narrow browser |
+| `2` | Medium (600–900 px) | Tablet portrait |
+| `3` | Large (900–1400 px) | Tablet landscape / small laptop |
+| `4` | Extra large (> 1400 px) | Desktop monitor |
+
+### Prerequisites
+
+- Use **Tablet** form factor (not Phone) — Tablet gives you access to more responsive features.
+- Turn off **Scale to Fit**: go to **Settings → Display → Scale to Fit → Off**. This is required; without it, the app just scales up/down like a fixed image instead of reacting to screen width.
+
+### Customising breakpoints
+
+You can set your own breakpoint values in the `App` object under **Advanced properties**:
+
+```powerfx
+// App.SizeBreakpoints — override the default 600/900/1400 pixel values
+// e.g., to add a 1600px breakpoint for extra-wide monitors:
+App.SizeBreakpoints = [600, 900, 1400, 1600]
+```
+
+### Hiding controls on small screens
+
+```powerfx
+// Hide the sidebar navigation on phones (Screen.Size = 1):
+conSideNav.Visible = HomeScreen.Size <> 1
+
+// Show a hamburger menu icon only on phones:
+btnHamburger.Visible = HomeScreen.Size = 1
+
+// Change a gallery from 3 columns to 1 column on phone:
+galItems.WrapCount = If(HomeScreen.Size = 1, 1, If(HomeScreen.Size = 2, 2, 3))
+```
+
+### Using FillPortions for proportional widths
+
+Instead of setting fixed pixel widths on controls inside a Horizontal Container, use **FlexibleWidth = true** and **FillPortions** to set proportional sizes:
+
+```powerfx
+// Header bar: service desk label takes 2/3 of the width,
+// welcome label takes 1/3 of the width.
+// Both have FlexibleWidth = On.
+lblServiceDesk.FillPortions = 2   // takes 2 portions of available space
+lblWelcome.FillPortions     = 1   // takes 1 portion (half the size of lblServiceDesk)
+```
+
+This is how you build truly responsive headers and multi-column layouts without hardcoded widths.
+
+---
+
+## 13. Dynamic Tab Navigation — Gallery + Collection Pattern
+
+> The cleanest way to build a tab bar in Power Apps is a **Horizontal Gallery** driven by a **collection** of tab definitions. The selected tab controls which content is visible. Tabs can be added or removed from the collection — the gallery adjusts automatically.
+
+### Step 1 — Define the tabs in a collection
+
+Put this in `App.OnStart`:
+
+```powerfx
+// Build the list of tabs the app will show.
+// Each tab has an id (number), a display name, and an icon.
+// Add or remove items here to change the tab bar.
+ClearCollect(
+    colTabs,
+    {id: 1, name: "All Tickets",   logo: Icon.Tag},
+    {id: 2, name: "My Tickets",    logo: Icon.Person},
+    {id: 3, name: "Closed",        logo: Icon.Check},
+    {id: 4, name: "Settings",      logo: Icon.Settings}
+)
+```
+
+For role-based tabs (only show certain tabs to certain users):
+
+```powerfx
+// Start with common tabs, then add manager-only tabs if the user is a manager
+ClearCollect(colTabs,
+    {id: 1, name: "My Items", logo: Icon.Tag}
+);
+If(
+    "Manager" in User().Groups,  // or check a Dataverse role
+    Collect(colTabs, {id: 2, name: "Team View", logo: Icon.People})
+)
+```
+
+### Step 2 — Build the tab gallery
+
+Insert a **Gallery** (not a container):
+
+| Property | Value | Why |
+|---|---|---|
+| `Items` | `colTabs` | Drives tabs from the collection |
+| `Layout` | Horizontal | Tabs go left to right |
+| `WrapCount` | `CountRows(colTabs)` | Forces all tabs into one row — no wrapping |
+| `TemplateSize` | `Parent.Height` | Each tab fills the full height of the gallery |
+| `Height` | 48 (or match your header height) | Standard tab bar height |
+
+Inside each gallery template, add:
+- A **Label** — `ThisItem.name`
+- An **Icon** — `ThisItem.logo`
+- A thin **Rectangle** at the bottom — acts as the selected tab indicator
+
+### Step 3 — Track the selected tab
+
+```powerfx
+// When a tab is tapped, remember which one is active.
+// Put this in the gallery template's OnSelect:
+Set(varActiveTab, ThisItem.id)
+
+// Initialise the default tab in App.OnStart (after ClearCollect):
+Set(varActiveTab, 1)
+```
+
+### Step 4 — Show tab content based on selected tab
+
+Each content area has a `Visible` formula:
+
+```powerfx
+// Container for "All Tickets" content:
+conAllTickets.Visible = varActiveTab = 1
+
+// Container for "My Tickets" content:
+conMyTickets.Visible = varActiveTab = 2
+```
+
+### Step 5 — Highlight the active tab
+
+In the gallery template, change the selected indicator rectangle's colour:
+
+```powerfx
+// Active indicator bar at the bottom of each tab:
+rectTabIndicator.Fill    = If(ThisItem.id = varActiveTab, BrandColor, Transparent)
+rectTabIndicator.Height  = 3
+rectTabIndicator.Y       = Parent.TemplateHeight - 3   // stick to the bottom
+```
+
+### Full structure
+
+```
+conHeader (Horizontal Container)
+├── lblAppTitle (Label)
+└── galTabs (Horizontal Gallery — WrapCount=CountRows(colTabs))
+    └── Template
+        ├── icoTab    (Icon — ThisItem.logo)
+        ├── lblTab    (Label — ThisItem.name)
+        └── rectBar   (Rectangle — selected indicator)
+
+conBody (Vertical Container — content area)
+├── conAllTickets  (Visible = varActiveTab = 1)
+├── conMyTickets   (Visible = varActiveTab = 2)
+├── conClosed      (Visible = varActiveTab = 3)
+└── conSettings    (Visible = varActiveTab = 4)
+```
+
+---
+
+## 14. Modern vs Classic Form Control
+
+> You have two form controls to choose from. Knowing which to pick saves hours of frustration.
+
+| | Classic Form (`EditForm`) | Modern Form (Preview) |
+|---|---|---|
+| **Appearance** | Requires manual styling | Better out-of-the-box design |
+| **Dark themes** | ✅ Full control over label colours | ❌ Label colour cannot be changed (as of 2024) |
+| **Custom widths** | ✅ Snap to Columns + WidthFit | ✅ Available |
+| **Border radius on inputs** | Requires unlocking data cards | Native on TextInput |
+| **Status** | Stable | Preview — use Classic for production |
+| **AI code generation** | Works with Canvas Authoring MCP | Works with Canvas Authoring MCP |
+
+**Decision rule:** Use **Classic Form** whenever you need dark themes, custom label colours, or any deep visual customisation. Use **Modern Form** only for quick light-theme prototypes.
+
+### Classic Form — data card tips
+
+**Snap to Columns:**
+- `SnapToColumns = On` → data cards snap to the column grid (good for quick layout)
+- `SnapToColumns = Off` → set each data card width manually (needed for custom designs)
+
+**WidthFit:**
+- `WidthFit = On` on a data card → fills the remaining width of its row automatically. Combine with fixed-width cards for responsive columns.
+
+**Bulk-select all inputs trick:**
+1. Change the form's `Layout` to **Horizontal**
+2. Immediately press **Ctrl+Z** to undo
+3. This accidentally selects ALL field labels AND inputs in the form at once
+4. Now set `X = 5` and `Width = Parent.Width - 30` on the entire selection — instant consistent widths
+
+**Required field asterisk:**
+Instead of a separate asterisk label, concatenate it into the field label's `Text` property:
+```powerfx
+// Show a red asterisk before the field name if it is required.
+// DataCard.Required is automatically true for required Dataverse columns.
+If(DataCard.Required, "* ", "") & "Field Name"
+```
+
+**Borders from data card level:**
+Change border colour by selecting multiple data cards (Ctrl+Click in the tree view), not the individual inputs. This sets the same style on all cards at once.
+
