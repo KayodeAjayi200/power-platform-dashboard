@@ -4,7 +4,7 @@ description: Power Apps Canvas Apps UI/UX design guide — containers, responsiv
 license: MIT
 metadata:
   author: KayodeAjayi200
-  version: "1.0.0"
+  version: "2.0.0"
   organization: Veldarr
   date: April 2026
   abstract: >
@@ -145,7 +145,29 @@ Horizontal and Vertical Container controls form the backbone of every well-desig
 |---|---|
 | **Vertical Container** | Stack content top-to-bottom (header → content → footer) |
 | **Horizontal Container** | Place items side-by-side (icon + label, nav bar icons, two-column layout) |
+| **Manual Layout Container** | Layering controls on top of each other (e.g., background image with text overlay) |
 | **Grid Container** (Preview) | Precise row/column grid placement for dashboards |
+
+### Manual vs Auto-layout containers — know the difference
+
+- **Auto-layout containers** (Horizontal / Vertical) enforce one direction of stacking. Children line up with gap/padding. Use for almost everything.
+- **Manual layout containers** give full freedom to position children — but use sparingly. The main valid use case is **layering** (e.g., a background image with content sitting on top of it).
+
+```powerfx
+// Manual container "card" layering pattern
+// Background fills the whole parent container:
+imgBackground.X      = 0
+imgBackground.Y      = 0
+imgBackground.Width  = Parent.Width
+imgBackground.Height = Parent.Height
+
+// A label overlays the background — same container, positioned on top
+lblTitle.X     = 16
+lblTitle.Y     = 0
+lblTitle.Width = Parent.Width - 32
+```
+
+> ⚠️ For everything else (layout structure, navigation, forms, galleries), always use auto-layout containers.
 
 ### How to structure a screen
 
@@ -172,15 +194,104 @@ Screen (Vertical Container)
 | `Gap` | Spacing between children |
 | `Padding` | Inner spacing on all sides |
 | `Wrap` | Allows children to wrap to next row |
+| `OverflowY` | `Overflow.Scroll` — makes the container scrollable vertically |
+
+### FillPortions — controlling proportional widths
+
+When you have multiple children in a Horizontal Container, `FillPortions` lets you set their width ratios without pixel math. Think of it as "shares of the available space."
+
+```powerfx
+// Example: 3 columns in a horizontal container — 50% / 25% / 25%
+// Set FlexibleWidth = true on each child, then assign their "shares":
+columnA.FlexibleWidth = true
+columnA.FillPortions  = 2   // gets 2 out of 4 shares = 50%
+
+columnB.FlexibleWidth = true
+columnB.FillPortions  = 1   // gets 1 out of 4 shares = 25%
+
+columnC.FlexibleWidth = true
+columnC.FillPortions  = 1   // gets 1 out of 4 shares = 25%
+
+// Always set a minimum width so the column stays usable on small screens:
+columnA.MinimumWidth = 320
+```
+
+### Scrollable filter/content panel
+
+When a section has lots of content that might overflow (e.g., a filter panel with many options), make the container scroll instead of cutting things off:
+
+```powerfx
+// Vertical container that holds a filter panel or long list:
+conFilters.OverflowY    = Overflow.Scroll   // allow vertical scrolling
+conFilters.PaddingTop   = 8
+conFilters.PaddingBottom = 8
+conFilters.Gap          = 6
+```
 
 ### Key rules
 - **Group related controls** in a container so you can hide/move the whole group at once
 - **Nest containers** for complex layouts — a horizontal container can contain vertical ones
 - Containers make maintenance trivial: need to hide a section? `Container.Visible = false`
+- **Use `OverflowY = Overflow.Scroll`** for filter panels and any dense section that might not fit the screen
 
 ---
 
-## 2. Responsive Design
+## 1b. Control Naming Conventions
+
+**Rule: Name every control consistently. Readable names make the app maintainable by humans AND understandable by AI tools.**
+
+The naming system uses a short **prefix** (what kind of control it is) + a **semantic suffix** (what it does in the app).
+
+### Prefix reference
+
+| Prefix | Control type |
+|---|---|
+| `con` | Container (horizontal or vertical) |
+| `cmp` | Component |
+| `gal` | Gallery |
+| `frm` | Form (Edit or Display) |
+| `btn` | Button |
+| `txt` | Text Input |
+| `lbl` | Label |
+| `img` | Image |
+| `ico` | Icon |
+| `chk` | Checkbox |
+| `ddl` | Dropdown |
+| `cbo` | Combo Box |
+| `tog` | Toggle |
+| `dtp` | Date Picker |
+| `tmr` | Timer |
+
+### Semantic suffix reference
+
+| Suffix | Meaning |
+|---|---|
+| `Header` | The top app bar / title bar |
+| `Nav` | Navigation container or menu |
+| `Search` | The search bar or search input |
+| `Filters` | The filter panel |
+| `Results` | The main gallery/list of results |
+| `Details` | The detail/record view pane |
+| `Commands` | A row of action buttons |
+| `Footer` | Bottom bar |
+
+### Examples
+
+```
+conHeader          — the header container
+conNav             — the left navigation container
+txtSearch          — the search text input
+galResults         — the results gallery
+conFilters         — the filter panel container
+lblActiveFilters   — the "3 filters active" counter label
+frmDetails         — the record detail form
+btnSave            — the save button
+btnCancelEdit      — the cancel button in edit mode
+```
+
+> **Why this matters:** When AI tools (like the Canvas Authoring MCP server) enumerate and modify controls, consistent naming lets them find the right target without guesswork. It also makes the app readable to new team members instantly.
+
+---
 
 **Rule: Design for the devices your users actually use. Make it work everywhere, make it perfect for the primary device.**
 
@@ -309,7 +420,59 @@ btnAdd.Icon = Icon.Add
 btnSave.IconPosition = IconPosition.Leading   // icon left of text
 ```
 
-### SVG icons with theme colors
+### Fluent 2 typography ramp — use consistent text sizes
+
+Fluent defines a standard set of text size roles. Use these instead of choosing random font sizes. Bigger = more important. Smaller = supporting info.
+
+| Role | Font size (approx) | Use it for |
+|---|---|---|
+| **Display** | 40–68px | Hero headings, splash screens |
+| **Title** | 24–28px | Screen titles, modal headings |
+| **Subtitle** | 20px | Section headings, card titles |
+| **Body** | 14–16px | Main readable content, labels |
+| **Caption** | 10–12px | Metadata, timestamps, secondary info |
+
+```powerfx
+// Apply text roles consistently:
+lblScreenTitle.FontSize = 24   // Title
+lblSectionHeading.FontSize = 18  // Subtitle
+lblBodyText.FontSize = 14     // Body
+lblTimestamp.FontSize = 12    // Caption
+
+// ❌ Never go all-caps for readability (Fluent guidance)
+// ❌ Avoid hard-coding hex colours — use your theme named formulas
+```
+
+**Accessibility contrast rule:** Standard body text must meet **4.5:1 contrast ratio** against its background. Large text (18px+ or 14px+ bold) needs at least **3:1**.
+
+### Theme tokens — the right way to think about colours
+
+Power Apps modern themes work like "alias tokens" — you name a colour by what it *means* (e.g., "brand colour") not what it *is* (e.g., #0078D4). This way, if you change the theme, everything updates at once.
+
+```powerfx
+// Define once in App.Formulas — then use everywhere:
+BrandColor    = ColorValue("#0078D4")   // your primary brand colour
+SurfaceColor  = ColorValue("#F3F2F1")   // background for cards/panels
+TextPrimary   = ColorValue("#201F1E")   // main readable text
+TextSecondary = ColorValue("#605E5C")   // supporting/secondary text
+SuccessColor  = ColorValue("#107C10")   // green for success states
+ErrorColor    = ColorValue("#A4262C")   // red for errors
+```
+
+> Never hardcode a hex value in an individual control. Always reference a named formula. This is the "token" approach.
+
+### Creator Kit — when to use it
+
+**Creator Kit** is a free Microsoft component library that gives you 24+ Fluent UI controls (detailed datagrids, command bars, facepile, etc.) beyond what's built into Power Apps. Install it from AppSource.
+
+**Use Creator Kit when:**
+- You need a high-fidelity Fluent component that the built-in modern controls don't provide
+- Your organisation allows "code components" (PCF controls) — check with your admin first
+- You want ready-made templates to start from
+
+**Stick to built-in modern controls when:**
+- Your organisation doesn't allow code components
+- The built-in controls cover your needs — keep things simple
 
 To make custom SVG icons follow the app theme:
 ```powerfx
@@ -416,6 +579,54 @@ badgeLabel.Color = Switch(ThisItem.Status,
 )
 ```
 
+### Delegation-aware gallery items — CRITICAL for real data
+
+**Delegation** means the filter/search query runs on the data source (Dataverse/SharePoint) rather than locally in the browser. If a query is *non-delegable*, Power Apps silently processes only the first **500–2,000 records** — your gallery may show incomplete data without any error.
+
+**Treat delegation warnings as release blockers for production apps with large data.**
+
+```powerfx
+// ✅ Delegation-aware gallery Items pattern:
+galResults.Items =
+    With(
+        { q: Trim(txtSearch.Text) },
+        If(
+            IsBlank(q),
+            // No search — return sorted results (SortByColumns is delegable)
+            SortByColumns(YourTable, "ModifiedOn", SortOrder.Descending),
+            // Search active — StartsWith IS delegable in Dataverse/SharePoint
+            // (but Contains is NOT delegable — avoid it in large datasets)
+            Filter(YourTable, StartsWith(Title, q))
+        )
+    )
+
+// ❌ Avoid non-delegable patterns on large tables:
+// Filter(YourTable, Title = "something")  — only works on first 2000 rows
+// Search(YourTable, q, "Title")           — check delegation per data source
+```
+
+**Delegable functions (Dataverse):** `Filter`, `Search`, `SortByColumns`, `LookUp` — but only with supported column types and operators. Always check the yellow delegation warning triangle in the formula bar.
+
+### Multi-view toggle (list ↔ grid)
+
+```powerfx
+// State variable — start in List mode
+Set(varViewMode, "List")   // or "Grid"
+
+// Toggle button OnSelect:
+Set(varViewMode, If(varViewMode = "List", "Grid", "List"))
+
+// Toggle button icon:
+btnToggleView.Icon = If(varViewMode = "Grid", Icon.DetailList, Icon.Waffle)
+
+// Gallery adjusts to show as list (1 column) or grid (3 columns):
+galItems.WrapCount = If(varViewMode = "Grid", 3, 1)
+
+// Or: use two separate galleries and show/hide them:
+galList.Visible = varViewMode = "List"
+galGrid.Visible = varViewMode = "Grid"
+```
+
 ### Search bar pattern
 
 ```
@@ -447,6 +658,29 @@ Filter Panel (Vertical Container) — slides in from side or drops from top
 ├── Section: Assigned To
 │   └── Combo Box (multi-select)
 └── Footer: Apply / Close
+```
+
+### Filter state as a collection — the maintainable approach
+
+Instead of tracking each filter in its own variable, store all filter state in a single collection. This makes it easy to count active filters and reset them all at once.
+
+```powerfx
+// Initialise filter state collection (call this in App.OnStart or screen OnVisible):
+ClearCollect(
+    colFilterState,
+    { Key: "StatusOpen",    Label: "Open",        IsActive: false },
+    { Key: "StatusClosed",  Label: "Closed",       IsActive: false },
+    { Key: "HighPriority",  Label: "High Priority", IsActive: false }
+)
+
+// Toggle a filter on/off when user taps a chip:
+UpdateIf(colFilterState, Key = ThisItem.Key, { IsActive: !ThisItem.IsActive })
+
+// Count active filters for the badge counter:
+lblActiveFilters.Text = CountRows(Filter(colFilterState, IsActive))
+
+// Clear all filters:
+UpdateIf(colFilterState, true, { IsActive: false })
 ```
 
 ### Active filter counter
@@ -603,21 +837,147 @@ btnSave.Text = If(varSaving, "Saving...", "Save")
 
 ---
 
-## 8. Design Checklist
+## 8. Accessibility
+
+**Rule: Every interactive control must have a meaningful `AccessibleLabel`. Every screen must be navigable by keyboard alone.**
+
+Accessibility is not optional — it is a legal requirement in many organisations and a quality bar for any app going to production.
+
+### Minimum accessibility checklist
+
+- [ ] **Every interactive control has a meaningful `AccessibleLabel`** — screen readers read this aloud. Example: `btnSave.AccessibleLabel = "Save this record"` (not just "Button")
+- [ ] **Don't use colour alone to convey meaning** — if a status is shown in red, also show a text label or icon. Users who are colour-blind must be able to understand the same information.
+- [ ] **Contrast ratio ≥ 4.5:1** for standard body text; **≥ 3:1** for large text (18px+ or 14px+ bold). Use a colour contrast checker before finalising your palette.
+- [ ] **Tab order is logical** — use `TabIndex` to control focus order. Enable **Simplified tab index** in app settings for cleaner keyboard navigation.
+- [ ] **Test with a screen reader** — Power Apps supports JAWS, Narrator, NVDA (Windows), TalkBack (Android), VoiceOver (iOS/Mac).
+- [ ] **Touch targets ≥ 44px tall/wide** — add padding to small buttons and icon-only controls.
+
+```powerfx
+// Set a meaningful label on every button and input control:
+btnSave.AccessibleLabel           = "Save changes to this record"
+txtSearch.AccessibleLabel         = "Search records by title"
+galResults.AccessibleLabel        = "List of matching records"
+btnToggleView.AccessibleLabel     = "Switch between list and grid view"
+
+// ❌ Wrong — vague or missing labels confuse screen reader users:
+btnSave.AccessibleLabel = "Button"
+```
+
+---
+
+## 9. Agent-Skill Readiness
+
+**Canvas apps built this way are ready for AI agents.** Microsoft's AI code generation tools (Canvas Authoring MCP server, Copilot Generative Pages) work by:
+
+1. Discovering available controls/connectors via installed "canvas app skills"
+2. Generating `.pa.yaml` for screens/controls/formulas
+3. Validating via the Canvas Authoring MCP server
+4. Syncing with Power Apps Studio coauthoring sessions
+
+For this to work, your app structure must be **readable** — predictable regions, stable names, clean component boundaries.
+
+### The canonical screen skeleton
+
+Every screen should follow this structure. AI tools, new team members, and future you will all thank you.
+
+```
+Screen
+└── conRoot (Vertical Container — fills the whole screen)
+    ├── conHeader    ← branding + title + key action buttons
+    ├── conBody      ← horizontal container (nav + content)
+    │   ├── conNav   ← left navigation (collapsible)
+    │   └── conMain  ← main content area (vertical)
+    │       ├── conSearch   ← search bar
+    │       ├── conFilters  ← filter panel or filter chips
+    │       └── galResults  ← the main gallery or form
+    └── conFooter    ← optional bottom bar
+```
+
+### Design rules that make an app agent-friendly
+
+**1. Semantic component boundaries** — keep Header, Nav, Search, Filters, Results, Details, Commands as explicit named containers or components. Never merge them into one blob.
+
+**2. Predictable naming** — use the naming convention from Section 1b. AI tools operate over control graphs and depend on stable, consistent names.
+
+**3. Single-responsibility screens** — prefer a small number of canonical screen patterns:
+
+| Pattern | When to use |
+|---|---|
+| **List-Detail** | Browse a list + see/edit one record (most business apps) |
+| **Dashboard** | Overview metrics + charts + quick actions |
+| **Wizard** | Multi-step data entry / guided process |
+| **Settings** | Configuration options |
+
+### Intent-to-action mapping
+
+This table shows how agent intents map to specific controls and Power Fx — useful when building a canvas app that an AI agent will interact with.
+
+| Agent intent | What user says | App surface | Power Fx target |
+|---|---|---|---|
+| `search_records` | "Find ticket 10293" / "Show orders from last week" | Search bar + gallery | `txtSearch.Text`, `galResults.Items` |
+| `apply_filters` | "Only high priority" / "Hide closed items" | Filter panel | `colFilterState`, `lblActiveFilters` |
+| `open_record` | "Open the top one" / "Show details for Acme" | Details pane | `galResults.Selected` → detail container |
+| `update_record` | "Mark as resolved" / "Change owner to Sam" | Form + submit button | `Patch(...)` / `SubmitForm(frmDetails)` |
+| `switch_view` | "Show grid view" / "Switch to list" | Multi-view toggle | `Set(varViewMode, ...)`, `galItems.WrapCount` |
+| `create_record` | "Create a new request" | New record screen / dialog | `Defaults(...)`, `NewForm(frmDetails)` |
+| `summarize_context` | "What's on this screen?" | Agent response panel | Reads filter/view/search state + selection |
+
+### AI-assisted build prompt template
+
+When using Copilot or another AI tool to generate a canvas app, use this prompt as a starting point:
+
+```
+Create a responsive Canvas app with:
+- A header (branding + title + key actions)
+- A left navigation bar (collapsible)
+- A search bar
+- A filter panel with an active filter counter
+- A list-detail layout (gallery + detail/form pane)
+Use modern controls and apply a modern theme with semantic colour tokens.
+Ensure keyboard navigation and AccessibleLabel coverage on all interactive controls.
+Follow the container-first layout approach throughout.
+```
+
+---
+
+## 10. Design Checklist
 
 Before publishing, verify:
 
-- [ ] All screens use containers (no manually positioned controls floating)
+### Visual system
+- [ ] Modern controls enabled, modern theme applied
+- [ ] Colour palette uses named formulas only — no hardcoded hex values
+- [ ] Typography follows a consistent size ramp (Caption / Body / Subtitle / Title)
+- [ ] Contrast ratio ≥ 4.5:1 for body text
+
+### Layout
+- [ ] All screens use containers — no manually positioned controls
 - [ ] App tested on smallest target device — nothing cut off
-- [ ] Modern controls enabled and theme applied
-- [ ] Color palette consistent (use named formulas, not hardcoded hex)
+- [ ] Drop shadows set explicitly on every container (None for layout, Light/Regular/Bold only for floating elements)
+
+### Components
+- [ ] Header / Nav / Search / Buttons implemented as reusable components (or per-screen with consistent naming)
+- [ ] Control names follow the naming convention (Section 1b)
+
+### Data
 - [ ] All galleries have a `NoDataText` or empty state UI
-- [ ] Search + filter tested with empty results
+- [ ] Gallery queries reviewed for delegation warnings — no silent data truncation
+- [ ] Search + filter tested with empty results and large datasets
+
+### Interaction
 - [ ] Loading/saving states handled — no "frozen" buttons
-- [ ] Navigation highlights current section
-- [ ] Touch targets ≥ 44px (add padding to small buttons)
-- [ ] Sufficient color contrast (WCAG AA minimum)
-- [ ] No single screen overwhelmed with information — break into sections
+- [ ] Navigation highlights the current section
+
+### Accessibility
+- [ ] Every interactive control has a meaningful `AccessibleLabel`
+- [ ] Tab order is logical — tested with keyboard only
+- [ ] Colour is not the only indicator of status/meaning
+- [ ] Touch targets ≥ 44px
+
+### Agent readiness
+- [ ] Screen skeleton follows the canonical structure (Header / Nav / Search / Filters / Results / Details)
+- [ ] Stable, consistent control names throughout
+- [ ] Intents mapped to UI regions and Power Fx targets
 
 ---
 
