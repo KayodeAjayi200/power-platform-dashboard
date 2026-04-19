@@ -32,6 +32,7 @@ Read the relevant skill file before writing any code or formulas.
 | [`skills/PowerApps-Canvas-Skill.md`](../skills/PowerApps-Canvas-Skill.md) | Any question about Canvas App controls, Power Fx formulas, components, galleries, forms, collections, AI Builder components |
 | [`skills/PowerApps-Canvas-Design-Skill.md`](../skills/PowerApps-Canvas-Design-Skill.md) | Any question about Canvas App UI/UX design — containers, responsive layouts, Fluent UI controls, themes, gallery card designs, filter panels, navigation menus, micro-interactions |
 | [`skills/PowerApps-Delegation-Skill.md`](../skills/PowerApps-Delegation-Skill.md) | Any delegation warning, gallery filter formula, search on large data sources, or question about data correctness at scale — Dataverse, SharePoint, SQL, Excel |
+| [`skills/Canvas-Authoring-MCP-Skill.md`](../skills/Canvas-Authoring-MCP-Skill.md) | ANY task that edits a live canvas app — fixing accessibility errors, editing controls, generating apps via MCP. Read this BEFORE touching any `powerapps-canvas-*` or `canvas-authoring-*` tool. |
 
 ---
 
@@ -92,8 +93,9 @@ Read the relevant skill file before writing any code or formulas.
 | "Build a canvas app form" | Read `skills/PowerApps-Canvas-Skill.md` first, then write Power Fx |
 | "Design a canvas app screen / layout" | Read `skills/PowerApps-Canvas-Design-Skill.md` first — use containers, never absolute X/Y |
 | "Fix delegation warning / gallery not showing all data" | Read `skills/PowerApps-Delegation-Skill.md` first — never increase row limit |
-| "Generate a canvas app for me" | Read `skills/PowerApps-Canvas-Skill.md` → install canvas plugin via Step 3b in `AGENT_SKILL.md` → run `/generate-canvas-app` and describe what the user wants |
-| "Edit my canvas app" | Read `skills/PowerApps-Canvas-Skill.md` → run `/edit-canvas-app` → describe the change; ensure coauthoring is on in Power Apps Studio |
+| "Fix accessibility errors in my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` first → verify MCP is pointed at the right app → run the full accessibility fix workflow in that skill |
+| "Generate a canvas app for me" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → read `skills/PowerApps-Canvas-Skill.md` → run `/generate-canvas-app` and describe what the user wants |
+| "Edit my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → sync → edit YAML → compile to push |
 | "Add a new MCP server" | Update `.mcp.json` + update `AGENT_SKILL.md` Step 4 |
 | "Set up on a new machine" | Follow `AGENT_SKILL.md` steps 1–11 in order |
 

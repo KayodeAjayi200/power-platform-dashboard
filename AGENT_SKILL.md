@@ -467,9 +467,10 @@ Once everything is installed, the user can ask their AI agent:
 | "Deploy SolutionName to Test" | Open dashboard → Deploy tab → select source env and target env → deploy |
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
 | "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
+| "Fix accessibility errors in my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → run the full accessibility fix workflow (get errors → sync → edit YAML → compile → verify) |
 | "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
-| "Build me a canvas app for expense tracking" | Use `/generate-canvas-app` in Copilot CLI — see Step 3b for setup |
-| "Add a filter panel to my canvas app" | Use `/edit-canvas-app` in Copilot CLI; describe the change in natural language |
+| "Build me a canvas app for expense tracking" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → use `/generate-canvas-app` — see Step 3b for setup |
+| "Add a filter panel to my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → sync → edit YAML → compile to push |
 | "Add the dashboard tools to a new colleague's machine" | Share this repo URL + tell them to give `AGENT_SKILL.md` to their AI |
 
 ---

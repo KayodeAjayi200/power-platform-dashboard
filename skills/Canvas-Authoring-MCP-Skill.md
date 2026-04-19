@@ -251,6 +251,89 @@ The update script in Step 3 always updates both — always use it.
 
 ---
 
+## How to fix accessibility errors — complete autonomous workflow
+
+> Follow this exactly. Do not ask the user to do anything except confirm Studio is open with co-authoring ON.
+
+### Step A — Confirm MCP is connected (do this first, every time)
+1. Ask the user: *"Is your canvas app open in Power Apps Studio with co-authoring enabled?"*
+2. Verify the MCP config App ID + Env ID match the Studio URL (Steps 1–4 of this skill)
+3. Restart MCP servers if config changed
+
+### Step B — Get all accessibility errors
+```
+powerapps-canvas-get_accessibility_errors
+```
+Note every control name, property, and screen. Group by screen.
+
+### Step C — Pull the current YAML
+```
+powerapps-canvas-sync_canvas  directoryPath: "C:\<working-dir>\canvas-sync"
+```
+This creates one `.pa.yaml` file per screen plus `App.pa.yaml`.
+
+> ⚠️ After every sync, check if a `Components\` folder was created. If not, and the app uses
+> CanvasComponents, you must extract the component definition from the solution's `.msapp` file
+> (see Problem 3 in the debugging log below). Without it, compile will fail.
+
+### Step D — Edit the YAML to add missing properties
+
+For each control flagged with "Missing accessible label":
+1. Find the control in the YAML by searching for the control name (e.g. `- Gallery1:`)
+2. Locate or create the `Properties:` block under it
+3. Add `AccessibleLabel: ="Descriptive text here"` as the FIRST line in Properties
+4. For gallery/list controls also flagged for TabIndex: add `TabIndex: =0`
+
+**Label text guidance:**
+- Buttons: `="Submit"`, `="Cancel"`, `="New report"`
+- Galleries/lists: `="Report list"`, `="Approval timeline"`
+- Icons: `="Navigation icon"`, `="Close"`, `="Search"`
+- Images: `="Company logo"`, `="Profile picture"`
+- Decorative shapes/rectangles: `="Separator"` or `="Divider"`
+- Input fields: `="Report title input"`, `="Date picker"`
+- Checkboxes: `="Agree to terms"`
+
+**Controls that do NOT support AccessibleLabel** (skip them — adding it causes compile errors):
+- `HtmlViewer`
+- `ModernText`
+- `Text` (classic label)
+- `FluentV8/Label`
+- The outer `CanvasComponent` wrapper of a component instance
+
+**YAML indentation is variable** — controls inside containers can be 24–40+ spaces deep.
+Detect the actual indent of the control name line and add 6 spaces for property values:
+```
+          - Gallery1:              ← this is the control name line (e.g. 10 spaces)
+              Control: Gallery      ← 14 spaces (4 more)
+              Properties:           ← 14 spaces
+                AccessibleLabel: ="Report list"   ← 16 spaces (2 more)
+                TabIndex: =0
+```
+
+### Step E — Push the changes
+```
+powerapps-canvas-compile_canvas  directoryPath: "C:\<working-dir>\canvas-sync"
+```
+- **"Validation PASSED"** → changes are live in Studio ✅
+- **Validation FAILED** → read the errors carefully:
+  - "property not supported" → that control type doesn't support AccessibleLabel — remove it
+  - "component not found" → missing component definition — see Problem 3 in debugging log
+  - Indentation error → re-check spacing around the added properties
+
+### Step F — Verify
+```
+powerapps-canvas-get_accessibility_errors
+```
+Count should drop. Repeat D→E→F until zero errors (or only component-internal controls remain — see Step G).
+
+### Step G — Component-internal controls (manual fix required)
+If after compiling you still see errors on a control that is INSIDE a CanvasComponent
+(e.g. `Rectangle1` inside `cmp_HeaderComplete`):
+- The MCP compile mechanism cannot push component definition changes
+- Tell the user: *"There is 1 remaining error inside the [ComponentName] component. Please open the component in Studio (left panel → Components → [ComponentName]), select [ControlName], and set its Accessible label property to '[value]'."*
+
+---
+
 ## Real-world debugging log — what went wrong and how it was fixed
 
 > This section records the actual problems encountered when building and using this skill.
