@@ -102,14 +102,21 @@ gh extension install github/gh-copilot
 
 ```powershell
 dotnet tool install -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool install -g Microsoft.PowerPlatform.Canvas.MCP
+dotnet tool install -g microsoft.powerapps.canvasauthoring.mcpserver
+dotnet tool install -g microsoft.agents.copilotstudio.mcp
 ```
 
-If either fails with "already installed", run with `update` instead:
+If any fail with "already installed", run with `update` instead:
 ```powershell
 dotnet tool update -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool update -g Microsoft.PowerPlatform.Canvas.MCP
+dotnet tool update -g microsoft.powerapps.canvasauthoring.mcpserver
+dotnet tool update -g microsoft.agents.copilotstudio.mcp
 ```
+
+> **Note:** These install three tools:
+> - `Microsoft.PowerPlatform.Dataverse.MCP` → command: `Microsoft.PowerPlatform.Dataverse.MCP`
+> - `microsoft.powerapps.canvasauthoring.mcpserver` → command: `CanvasAuthoringMcpServer`
+> - `microsoft.agents.copilotstudio.mcp` → command: `Microsoft.Agents.CopilotStudio.Mcp`
 
 ---
 
@@ -147,15 +154,19 @@ After installing, configure the MCP server before first use:
 
 ---
 
+## Step 4 — Install Node.js MCP packages
+
 ```powershell
-npm install -g @microsoft/copilot-studio-mcp
 npm install -g @modelcontextprotocol/server-github
 npm install -g @tiberriver256/mcp-server-azure-devops
 npm install -g @modelcontextprotocol/server-filesystem
-npm install -g @kazuph/mcp-fetch
+npm install -g @modelcontextprotocol/server-memory
+npm install -g @modelcontextprotocol/server-sequential-thinking
 npm install -g @playwright/mcp
 npm install -g @pnp/cli-microsoft365
 ```
+
+> **Note:** Copilot Studio MCP is now a .NET tool installed in Step 3 — no npm package needed.
 
 ---
 
@@ -183,7 +194,10 @@ Values to ask the user:
 - `ADO_ORG_URL` — Azure DevOps org URL, e.g. `https://dev.azure.com/myorg`
 - `ADO_PAT` — Azure DevOps PAT (dev.azure.com → User settings → Personal access tokens)
 - `DATAVERSE_CONNECTION_URL` — Power Automate connection URL (Power Automate → My connections → Common Data Service → `...` → Details → copy the full URL including query string)
+- `TENANT_ID` — Your Microsoft/Entra tenant ID (Azure Portal → Entra ID → Overview → Tenant ID)
 - `COPILOT_STUDIO_MCP_URL` — from Copilot Studio → Settings → Channels → MCP Client (optional — can be added later)
+- `CANVAS_APP_ID` — App ID from the Power Apps Studio URL (after `/apps/` in the URL) — set this after opening your canvas app in Studio (optional — use `/configure-canvas-mcp` later)
+- `CANVAS_ENVIRONMENT_ID` — Environment ID from the Power Apps Studio URL (after `/e/`) — same as above (optional)
 
 ```powershell
 $mcpDir = Join-Path $env:USERPROFILE ".copilot"
@@ -193,48 +207,101 @@ $githubPat      = "PASTE_GITHUB_PAT_HERE"
 $adoOrgUrl      = "PASTE_ADO_ORG_URL_HERE"
 $adoPat         = "PASTE_ADO_PAT_HERE"
 $dataverseUrl   = "PASTE_DATAVERSE_CONNECTION_URL_HERE"
+$tenantId       = "PASTE_TENANT_ID_HERE"
 $copilotStudio  = "REPLACE_WITH_YOUR_AGENT_MCP_URL"
+$canvasAppId    = "PASTE_CANVAS_APP_ID_HERE"
+$canvasEnvId    = "PASTE_CANVAS_ENVIRONMENT_ID_HERE"
 $repoPath       = "C:\Repositories\Powerapps Stuff"
 
 $mcp = @{
   mcpServers = @{
+    # Dataverse MCP — reads and writes Dataverse tables
     dataverse = @{
-      command = "dataverse-mcp"
-      args = @()
-      env = @{ DATAVERSE_MCP_URL = $dataverseUrl }
+      type    = "local"
+      command = "Microsoft.PowerPlatform.Dataverse.MCP"
+      args    = @(
+        "--ConnectionUrl", $dataverseUrl,
+        "--TenantId",      $tenantId,
+        "--MCPServerName", "DataverseMCPServer",
+        "--BackendProtocol", "HTTP"
+      )
     }
-    canvas = @{
-      command = "canvas-mcp"
-      args = @()
-    }
-    "copilot-studio" = @{
-      command = "npx"
-      args = @("-y", "@microsoft/copilot-studio-mcp", $copilotStudio)
-    }
-    github = @{
-      command = "npx"
-      args = @("-y", "@modelcontextprotocol/server-github")
-      env = @{ GITHUB_PERSONAL_ACCESS_TOKEN = $githubPat }
-    }
-    "azure-devops" = @{
-      command = "npx"
-      args = @("-y", "@tiberriver256/mcp-server-azure-devops")
-      env = @{
-        AZURE_DEVOPS_ORG_URL = $adoOrgUrl
-        AZURE_DEVOPS_PAT     = $adoPat
+    # Canvas App Authoring MCP — primary entry point (uses installed global tool)
+    "powerapps-canvas" = @{
+      command = "CanvasAuthoringMcpServer"
+      args    = @()
+      env     = @{
+        CANVAS_APP_ID           = $canvasAppId
+        CANVAS_ENVIRONMENT_ID   = $canvasEnvId
+        CANVAS_CLUSTER_CATEGORY = "prod"
       }
     }
+    # Canvas App Authoring MCP — secondary entry (uses dnx for latest prerelease)
+    "canvas-authoring" = @{
+      type    = "stdio"
+      command = "dnx"
+      args    = @(
+        "Microsoft.PowerApps.CanvasAuthoring.McpServer",
+        "--yes", "--prerelease",
+        "--source", "https://api.nuget.org/v3/index.json"
+      )
+      env     = @{
+        CANVAS_APP_ID           = $canvasAppId
+        CANVAS_ENVIRONMENT_ID   = $canvasEnvId
+        CANVAS_CLUSTER_CATEGORY = "prod"
+      }
+    }
+    # Copilot Studio MCP — manage Copilot Studio agents
+    "copilot-studio" = @{
+      type    = "local"
+      command = "Microsoft.Agents.CopilotStudio.Mcp"
+      args    = @(
+        "--remote-server-url", $copilotStudio,
+        "--tenant-id",         $tenantId,
+        "--scopes",            "https://api.powerplatform.com/.default"
+      )
+    }
+    # GitHub MCP — read repos, issues, PRs
+    github = @{
+      type    = "local"
+      command = "npx"
+      args    = @("-y", "@modelcontextprotocol/server-github")
+      env     = @{ GITHUB_PERSONAL_ACCESS_TOKEN = $githubPat }
+    }
+    # Azure DevOps MCP — pipelines, work items, repos
+    "azure-devops" = @{
+      type    = "local"
+      command = "npx"
+      args    = @("-y", "@tiberriver256/mcp-server-azure-devops")
+      env     = @{
+        AZURE_DEVOPS_ORG_URL  = $adoOrgUrl
+        AZURE_DEVOPS_AUTH_METHOD = "pat"
+        AZURE_DEVOPS_PAT      = $adoPat
+      }
+    }
+    # Filesystem MCP — read/write local repo files
     filesystem = @{
+      type    = "local"
       command = "npx"
-      args = @("-y", "@modelcontextprotocol/server-filesystem", $repoPath)
+      args    = @("-y", "@modelcontextprotocol/server-filesystem", $repoPath)
     }
-    fetch = @{
+    # Memory MCP — persistent knowledge graph across sessions
+    memory = @{
+      type    = "local"
       command = "npx"
-      args = @("-y", "@kazuph/mcp-fetch")
+      args    = @("-y", "@modelcontextprotocol/server-memory")
     }
+    # Sequential Thinking MCP — structured reasoning for complex tasks
+    "sequential-thinking" = @{
+      type    = "local"
+      command = "npx"
+      args    = @("-y", "@modelcontextprotocol/server-sequential-thinking")
+    }
+    # Playwright MCP — browser automation
     playwright = @{
+      type    = "local"
       command = "npx"
-      args = @("-y", "@playwright/mcp")
+      args    = @("-y", "@playwright/mcp")
     }
   }
 } | ConvertTo-Json -Depth 10
