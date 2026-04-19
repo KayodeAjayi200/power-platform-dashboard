@@ -241,4 +241,148 @@ After syncing, edit the YAML files locally and push changes back to Studio by sy
 
 ---
 
+## Real-world debugging log — what went wrong and how it was fixed
+
+> This section records the actual problems encountered when building and using this skill.
+> It is here so future agents don't repeat the same mistakes.
+
+---
+
+### Problem 1 — Canvas MCP returned HTTP 404 on every call
+
+**What happened:**
+The first attempt to run `canvas-authoring-sync_canvas` returned HTTP 404. The tool appeared to connect but immediately failed.
+
+**Root cause:**
+`mcp-config.json` contained placeholder App ID and Environment ID values from a previous session — they belonged to a completely different app. The MCP server validates these IDs against the active Studio co-authoring session and rejects any mismatch with a 404.
+
+The config had:
+```
+CANVAS_APP_ID:         "25be9404-7270-405a-90df-659d500dd1ad"   ← wrong app
+CANVAS_ENVIRONMENT_ID: "ef77d261-f915-e0fb-95f4-1cbc09edb6ab"  ← wrong environment
+```
+
+The user's actual app (visible in the Studio URL) was:
+```
+CANVAS_APP_ID:         "58aa6a76-ecd1-4560-a451-b99c6582e783"
+CANVAS_ENVIRONMENT_ID: "25146b4f-3532-efb4-8ce7-a181452f88ae"
+```
+
+**Fix:**
+1. Asked the user for the full Power Apps Studio URL from their browser
+2. Parsed App ID and Environment ID directly from the URL (see Step 1 of this skill)
+3. Updated both `powerapps-canvas` and `canvas-authoring` entries in `mcp-config.json`
+4. Told the user to restart Copilot CLI
+
+**Lesson learned:**
+Never assume the config is correct. Always check it against the Studio URL at the start of every canvas session. If the user has worked on multiple apps across sessions, the config is almost certainly stale.
+
+---
+
+### Problem 2 — New skill file was not appearing in the Copilot app Skills panel
+
+After writing `Canvas-Authoring-MCP-Skill.md`, three separate issues prevented it from appearing. Each one had to be found and fixed in turn.
+
+---
+
+#### Issue 2a — Skill copied to the wrong folder
+
+**What happened:**
+The skill was copied to `~\.copilot\skills\canvas-authoring-mcp\SKILL.md`. The Skills panel never showed it.
+
+**Root cause:**
+The Copilot app reads skills from `~\.agents\skills\`, not `~\.copilot\skills\`. The UI documentation is misleading — it says `~/.copilot/skills/` but that path is not what the app actually reads.
+
+**Fix:**
+Copy to `~\.agents\skills\canvas-authoring-mcp\SKILL.md` instead.
+
+**Lesson learned:**
+Skills must go in `~\.agents\skills\{skill-folder-name}\SKILL.md`. The `~\.copilot\skills\` path does not work. Always verify by checking where other working skills are installed:
+```powershell
+Get-ChildItem "$env:USERPROFILE\.agents\skills" -Directory | Select-Object Name
+```
+
+---
+
+#### Issue 2b — Skill file had no YAML frontmatter
+
+**What happened:**
+After copying to the correct folder, the skill still did not appear. Clicking 🔄 refresh in the Skills panel had no effect.
+
+**Root cause:**
+The skill file had no YAML frontmatter at all — it started directly with the `# AGENT SKILL:` heading. All working skill files start with a frontmatter block between `---` markers. Without it, the Copilot app cannot read the skill's name or description and silently ignores it.
+
+**Fix:**
+Added a YAML frontmatter block at the very top of the file:
+```yaml
+---
+name: canvas-authoring-mcp
+description: Canvas Authoring MCP connection guide — ...
+license: MIT
+metadata:
+  author: ...
+  version: "1.0.0"
+  organization: ...
+  date: ...
+---
+```
+
+**Lesson learned:**
+Every `SKILL.md` file must begin with YAML frontmatter. The `name:` and `description:` fields are the minimum. Without them the file is invisible to the Skills panel.
+
+---
+
+#### Issue 2c — Skill file was missing the `abstract:` field in metadata
+
+**What happened:**
+Frontmatter was added, skill was in the right folder, 🔄 refreshed — still not appearing.
+
+**Root cause:**
+Comparison against a known-working skill (`supabase-postgres-best-practices`) revealed a single difference: every working skill had an `abstract:` field inside the `metadata:` block. Our skill's `metadata:` block had `author`, `version`, `organization`, and `date` — but no `abstract`. The Copilot app appears to require this field before it will register the skill.
+
+**Fix:**
+Added the `abstract:` field to the metadata block:
+```yaml
+metadata:
+  author: KayodeAjayi200
+  version: "1.0.0"
+  organization: Veldarr
+  date: April 2026
+  abstract: Step-by-step guide for AI agents to connect the Canvas Authoring MCP server...
+```
+
+After copying the updated file and clicking 🔄, the skill appeared in the Skills panel.
+
+**Lesson learned:**
+The complete required frontmatter structure is:
+```yaml
+---
+name: skill-name-here
+description: One-line description shown in the Skills panel
+license: MIT
+metadata:
+  author: your-name
+  version: "1.0.0"
+  organization: your-org
+  date: Month Year
+  abstract: A short paragraph describing what this skill covers.
+---
+```
+All six fields (`name`, `description`, `license`, `author`, `version`, `organization`, `date`, `abstract`) must be present. Missing any one of them may cause the skill to not appear.
+
+---
+
+### Summary — the three-check list before declaring a skill "installed"
+
+```
+1. Is the file at ~\.agents\skills\{name}\SKILL.md ?          ← correct folder
+2. Does the file start with YAML frontmatter (--- ... ---) ?   ← required structure
+3. Does the metadata block include abstract: ?                 ← required field
+```
+
+If all three are true and the skill still doesn't appear — click 🔄 in the Skills panel.
+If it still doesn't appear after that — close and reopen the Copilot app.
+
+---
+
 *This skill is part of the [Power Platform Dashboard](https://github.com/KayodeAjayi200/power-platform-dashboard) project.*
