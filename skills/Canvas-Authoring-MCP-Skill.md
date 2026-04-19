@@ -7,6 +7,7 @@ metadata:
   version: "1.0.0"
   organization: Veldarr
   date: April 2026
+  abstract: Step-by-step guide for AI agents to connect the Canvas Authoring MCP server to the correct Power Apps canvas app. Covers extracting App ID and Environment ID from the Studio URL, reading and updating mcp-config.json, restarting the MCP server, verifying co-authoring is active, and resolving HTTP 404 connection errors across both powerapps-canvas and canvas-authoring MCP entries.
 ---
 
 # AGENT SKILL: Canvas Authoring MCP — Connecting to the Right App
