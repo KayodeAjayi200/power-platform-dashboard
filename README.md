@@ -126,6 +126,8 @@ This repo ships with **agent skill files** — structured reference docs that te
 |---|---|
 | [`skills/PowerApps-Canvas-Skill.md`](./skills/PowerApps-Canvas-Skill.md) | All ~60 canvas controls, 150+ Power Fx functions, components, common patterns |
 | [`skills/PowerApps-Canvas-Design-Skill.md`](./skills/PowerApps-Canvas-Design-Skill.md) | UI/UX design — containers, responsive layouts, Fluent UI, gallery designs, filter panels, nav menus |
+| [`skills/PowerApps-Delegation-Skill.md`](./skills/PowerApps-Delegation-Skill.md) | Delegation warnings, Filter/Search formulas on large data sources, data correctness at scale |
+| [`skills/Canvas-Authoring-MCP-Skill.md`](./skills/Canvas-Authoring-MCP-Skill.md) | Connecting the Canvas Authoring MCP to the right app — extracting IDs from Studio URL, updating config, resolving 404 errors |
 
 ### Installing skills into the Copilot app
 
@@ -147,6 +149,7 @@ The repo includes [`.github/copilot-instructions.md`](./.github/copilot-instruct
 |---|---|
 | `dataverse` | Query and update Dataverse tables directly |
 | `canvas` | Read canvas app structure and controls |
+| `canvas-authoring` | Edit a live canvas app via Power Apps Studio co-authoring |
 | `copilot-studio` | Manage Copilot Studio agents |
 | `github` | Read repos, issues, PRs |
 | `azure-devops` | Trigger pipelines, view work items |
@@ -188,7 +191,10 @@ power-platform-dashboard/
 │   └── workflows/
 │       └── copilot-setup-steps.yml   ← Pre-installs all tools in Copilot cloud agent
 ├── skills/
-│   └── PowerApps-Canvas-Skill.md    ← Power Fx + controls reference (agent skill)
+│   ├── PowerApps-Canvas-Skill.md         ← Power Fx + controls reference (agent skill)
+│   ├── PowerApps-Canvas-Design-Skill.md  ← UI/UX design, containers, Fluent UI (agent skill)
+│   ├── PowerApps-Delegation-Skill.md     ← Delegation warnings + large data sources (agent skill)
+│   └── Canvas-Authoring-MCP-Skill.md    ← Canvas Authoring MCP connection guide (agent skill)
 ├── scripts/
 │   ├── PowerPlatformDashboard.ps1   ← Main WinForms dashboard (~2800 lines)
 │   ├── Install-PPDashboard.ps1      ← Full toolchain installer script

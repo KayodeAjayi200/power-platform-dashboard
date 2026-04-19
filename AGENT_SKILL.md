@@ -312,6 +312,9 @@ Copy-Item "$repoRoot\skills\PowerApps-Canvas-Design-Skill.md" `
 New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-delegation" | Out-Null
 Copy-Item "$repoRoot\skills\PowerApps-Delegation-Skill.md" `
           "$skillsBase\powerapps-delegation\SKILL.md" -Force
+New-Item -ItemType Directory -Force -Path "$skillsBase\canvas-authoring-mcp" | Out-Null
+Copy-Item "$repoRoot\skills\Canvas-Authoring-MCP-Skill.md" `
+          "$skillsBase\canvas-authoring-mcp\SKILL.md" -Force
 Copy-Item "$repoRoot\AGENT_SKILL.md" `
           "$skillsBase\power-platform-dashboard\SKILL.md" -Force
 
@@ -380,6 +383,8 @@ Tell the user to:
 | Export→Unpack→Push stuck | Operation has a 5-minute timeout; check Output tab for error details |
 | Skills not showing in Copilot app | Click 🔄 in Skills panel; verify files exist in `~\.agents\skills\` |
 | Canvas MCP not responding | Run `dotnet --version` — must be **10.0+**; re-run `/configure-canvas-mcp` with fresh Studio URL |
+| Canvas MCP returns 404 | App ID or Environment ID in `mcp-config.json` does not match the open app — read `skills/Canvas-Authoring-MCP-Skill.md` and follow Steps 1–4 |
+| Canvas MCP connects to wrong app | User switched to a different app — update config with new IDs from the Studio URL; restart MCP server |
 | `/plugin install` command not found | Command only works inside GitHub Copilot CLI or Claude Code — not in a regular terminal |
 | Changes not appearing in Studio | Ensure coauthoring is enabled (Settings → Updates → Coauthoring) and Studio session is still active |
 
@@ -411,6 +416,7 @@ This repo includes reference skill files for common Power Platform topics:
 | `skills/PowerApps-Canvas-Skill.md` | Writing or debugging Canvas App controls, Power Fx formulas, components |
 | `skills/PowerApps-Canvas-Design-Skill.md` | UI/UX design — containers, responsive layouts, Fluent UI, gallery cards, filter panels, navigation |
 | `skills/PowerApps-Delegation-Skill.md` | Delegation warnings, Filter/Search formulas on large data sources, data correctness at scale |
+| `skills/Canvas-Authoring-MCP-Skill.md` | Connecting the Canvas Authoring MCP to the right app — resolving 404s, updating App ID / Environment ID, verifying co-authoring |
 | `AGENT_SKILL.md` (this file) | Setting up tools, installing MCP servers, onboarding a new machine |
 
 ---
