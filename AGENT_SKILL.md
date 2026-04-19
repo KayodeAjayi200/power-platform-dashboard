@@ -382,6 +382,9 @@ Copy-Item "$repoRoot\skills\PowerApps-Delegation-Skill.md" `
 New-Item -ItemType Directory -Force -Path "$skillsBase\canvas-authoring-mcp" | Out-Null
 Copy-Item "$repoRoot\skills\Canvas-Authoring-MCP-Skill.md" `
           "$skillsBase\canvas-authoring-mcp\SKILL.md" -Force
+New-Item -ItemType Directory -Force -Path "$skillsBase\powerapps-canvas-accessibility" | Out-Null
+Copy-Item "$repoRoot\skills\PowerApps-Canvas-Accessibility-Skill.md" `
+          "$skillsBase\powerapps-canvas-accessibility\SKILL.md" -Force
 Copy-Item "$repoRoot\AGENT_SKILL.md" `
           "$skillsBase\power-platform-dashboard\SKILL.md" -Force
 
@@ -467,7 +470,7 @@ Once everything is installed, the user can ask their AI agent:
 | "Deploy SolutionName to Test" | Open dashboard → Deploy tab → select source env and target env → deploy |
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
 | "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
-| "Fix accessibility errors in my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → run the full accessibility fix workflow (get errors → sync → edit YAML → compile → verify) |
+| "Fix accessibility errors in my canvas app" | Read `skills/PowerApps-Canvas-Accessibility-Skill.md` (what to fix + WCAG standards) AND `skills/Canvas-Authoring-MCP-Skill.md` (how to push fixes via MCP) → verify MCP config → run the full accessibility fix workflow |
 | "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
 | "Build me a canvas app for expense tracking" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → use `/generate-canvas-app` — see Step 3b for setup |
 | "Add a filter panel to my canvas app" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → sync → edit YAML → compile to push |
@@ -485,6 +488,7 @@ This repo includes reference skill files for common Power Platform topics:
 | `skills/PowerApps-Canvas-Design-Skill.md` | UI/UX design — containers, responsive layouts, Fluent UI, gallery cards, filter panels, navigation |
 | `skills/PowerApps-Delegation-Skill.md` | Delegation warnings, Filter/Search formulas on large data sources, data correctness at scale |
 | `skills/Canvas-Authoring-MCP-Skill.md` | Connecting the Canvas Authoring MCP to the right app — resolving 404s, updating App ID / Environment ID, verifying co-authoring |
+| `skills/PowerApps-Canvas-Accessibility-Skill.md` | Canvas App accessibility knowledge — WCAG 2.1 AA standards, accessible property reference (AccessibleLabel, TabIndex, FocusedBorderThickness, Role, Live), labelling patterns, keyboard navigation, screen reader support, forms/errors, live regions, known platform limitations, testing guidance |
 | `AGENT_SKILL.md` (this file) | Setting up tools, installing MCP servers, onboarding a new machine |
 
 ---
