@@ -1,3 +1,14 @@
+---
+name: canvas-authoring-mcp
+description: Canvas Authoring MCP connection guide — how to point the MCP at the right Power Apps canvas app, extract App ID and Environment ID from the Studio URL, update mcp-config.json, restart the MCP server, and resolve 404 connection errors. Use this skill before any Canvas Authoring MCP tool call.
+license: MIT
+metadata:
+  author: KayodeAjayi200
+  version: "1.0.0"
+  organization: Veldarr
+  date: April 2026
+---
+
 # AGENT SKILL: Canvas Authoring MCP — Connecting to the Right App
 
 > **Reference for AI agents working with the Canvas Authoring MCP server.**
