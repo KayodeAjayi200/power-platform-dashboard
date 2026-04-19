@@ -215,16 +215,21 @@ The update script in Step 3 always updates both — always use it.
 
 | Tool | What it does |
 |---|---|
-| `canvas-authoring-sync_canvas` | Pull live YAML from Studio into a local directory |
-| `canvas-authoring-compile_canvas` | Validate YAML for errors without pushing |
-| `canvas-authoring-list_controls` | List every control on every screen |
-| `canvas-authoring-describe_control` | Get the properties and schema for a specific control type |
-| `canvas-authoring-list_data_sources` | List data sources connected to the app |
-| `canvas-authoring-get_data_source_schema` | Get column types for a data source |
-| `canvas-authoring-list_apis` | List available connectors |
+| `powerapps-canvas-sync_canvas` | **PULL** — overwrites local files with live YAML from Studio. PULL ONLY. |
+| `powerapps-canvas-compile_canvas` | **PUSH** — validates local YAML and, if zero errors, commits changes to Studio |
+| `powerapps-canvas-get_accessibility_errors` | List all accessibility violations in the app |
+| `powerapps-canvas-list_controls` | List every control on every screen |
+| `powerapps-canvas-describe_control` | Get the properties and schema for a specific control type |
+| `powerapps-canvas-list_data_sources` | List data sources connected to the app |
+| `powerapps-canvas-get_data_source_schema` | Get column types for a data source |
+| `powerapps-canvas-list_apis` | List available connectors |
 
-After syncing, edit the YAML files locally and push changes back to Studio by syncing again
-(the MCP server auto-merges edits made on both sides during a co-authoring session).
+> ⚠️ **Always use the `powerapps-canvas-*` tool variants** (not `canvas-authoring-*`).
+> `canvas-authoring-compile_canvas` returns "no active coauthoring session" even when Studio IS open.
+> `powerapps-canvas-compile_canvas` is the one that actually works.
+
+> ⚠️ **`sync_canvas` is PULL-ONLY.** It always overwrites your local files with the Studio version.
+> It does NOT push local edits to Studio. To push, use `compile_canvas`.
 
 ---
 
@@ -233,11 +238,16 @@ After syncing, edit the YAML files locally and push changes back to Studio by sy
 ```
 1. Ask user for Studio URL  →  extract App ID + Env ID
 2. Check mcp-config.json   →  compare IDs
-3. If different:  update config (Step 3 script)  →  restart MCP (Step 4)
+3. If different: update config (Step 3 script)  →  restart MCP (Step 4)
 4. Confirm Studio has co-authoring ON and the correct app is open
-5. Run canvas-authoring-sync_canvas  →  confirm you get YAML files back
-6. Read / edit YAML  →  sync again to push changes to Studio
+5. Run powerapps-canvas-sync_canvas  →  confirm you get YAML files back (PULL)
+6. Edit the local YAML files
+7. Run powerapps-canvas-compile_canvas  →  if PASSED, changes are committed to Studio (PUSH)
+8. Repeat steps 5-7 iteratively until all changes are in
 ```
+
+> **The push/pull cycle:** sync = pull from Studio. compile (pass) = push to Studio.
+> These are two separate operations. Never confuse them.
 
 ---
 
@@ -276,6 +286,113 @@ CANVAS_ENVIRONMENT_ID: "25146b4f-3532-efb4-8ce7-a181452f88ae"
 
 **Lesson learned:**
 Never assume the config is correct. Always check it against the Studio URL at the start of every canvas session. If the user has worked on multiple apps across sessions, the config is almost certainly stale.
+
+---
+
+### Problem 2 — Accessibility fixes applied locally but not appearing in Studio
+
+**What happened:**
+After editing YAML files locally and running `canvas-authoring-sync_canvas` again, the changes were gone — the sync had overwritten the local files with the unchanged Studio version.
+
+**Root cause:**
+`sync_canvas` is PULL-ONLY. It always overwrites the local directory with whatever is currently in Studio. It does not push local edits. The correct push mechanism is `compile_canvas`.
+
+**Fix:**
+Use `powerapps-canvas-compile_canvas` to push. When it returns "Validation PASSED", the changes are committed to the Studio co-authoring session.
+
+**Lesson learned:**
+- `sync_canvas` = pull from Studio (always overwrites local)
+- `compile_canvas` = validate + push to Studio (zero errors = committed)
+- Use `powerapps-canvas-compile_canvas`, NOT `canvas-authoring-compile_canvas` — the `canvas-authoring` variant returns "no active coauthoring session" even when Studio is open
+
+---
+
+### Problem 3 — Compile failed with "cmp_HeaderComplete CanvasComponent not found"
+
+**What happened:**
+`compile_canvas` failed because it couldn't resolve a `CanvasComponent` reference named `cmp_HeaderComplete`. This component is embedded in the app but its definition file is not returned by `sync_canvas`.
+
+**Root cause:**
+`sync_canvas` only returns screen-level YAML files (App.pa.yaml + one file per screen). Component definitions are stored separately in the app but are not included in the sync. The compile tool needs the component definition to resolve references, but it's not there.
+
+**Fix:**
+1. Export the solution containing the app:
+   ```powershell
+   pac solution export --name ODHRReporting --path "C:\temp\solution-export" --managed false
+   ```
+2. The exported solution contains a `.msapp` file — it's actually a ZIP. Extract it:
+   ```powershell
+   $msappPath = Get-ChildItem "C:\temp\solution-export" -Filter "*.msapp" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+   Expand-Archive $msappPath "C:\temp\solution-export\msapp-contents" -Force
+   ```
+3. Find the component definition inside the extracted msapp:
+   ```
+   msapp-contents\Src\Components\cmp_HeaderComplete.pa.yaml
+   ```
+4. Copy it to a `Components\` subfolder inside your sync directory:
+   ```powershell
+   New-Item "$syncDir\Components" -ItemType Directory -Force
+   Copy-Item "C:\temp\solution-export\msapp-contents\Src\Components\cmp_HeaderComplete.pa.yaml" "$syncDir\Components\" -Force
+   ```
+5. Re-run `compile_canvas` — it will now resolve the component reference
+
+**Important limitation:**
+Changes made to the component file in `Components\` are used for compile resolution ONLY.
+They are NOT pushed to Studio when compile passes. Only the 3-4 screen files are pushed.
+To change a component's controls (e.g., fix `Rectangle1.AccessibleLabel` inside a component),
+the user must edit the component manually in Studio's Component Editor.
+
+**Lesson learned:**
+- Always check if `sync_canvas` returns a `Components\` folder. If not, extract components from the `.msapp`
+- `sync_canvas` wipes the `Components\` folder on every run — restore it before every `compile_canvas`
+- `pac canvas unpack` may fail with PA3002 on some apps — use direct zip extraction instead
+
+---
+
+### Problem 4 — AccessibleLabel empty string `=""` still flagged as missing
+
+**What happened:**
+Several controls had `AccessibleLabel: =""` (an empty string formula) but the accessibility checker still reported them as "Missing accessible label".
+
+**Root cause:**
+Power Apps accessibility checker treats an empty string as equivalent to "no label". Even though the property exists, an empty value doesn't satisfy the requirement.
+
+**Fix:**
+Replace `=""` with a descriptive label. For decorative elements (dividers, separators):
+```yaml
+AccessibleLabel: ="Separator"
+```
+For functional elements, use a meaningful description:
+```yaml
+AccessibleLabel: ="Submit button"
+AccessibleLabel: ="Navigation icon"
+```
+
+---
+
+### Problem 5 — YAML indentation varies widely; simple regex fails
+
+**What happened:**
+A fix script using hard-coded 4-space indentation to find controls failed on deeply nested controls. Some controls are indented 24–40+ spaces deep depending on their container nesting.
+
+**Root cause:**
+Power Apps YAML indentation is NOT fixed. Each nesting level adds more spaces, and controls inside containers inside containers can be very deeply indented.
+
+**Fix:**
+Detect the actual indentation of each control dynamically by finding the line that starts the control block and measuring its leading spaces. Then derive the correct indentation for `Properties:` and property values relative to that:
+```python
+# Find the control name line and measure its indent
+indent = len(line) - len(line.lstrip())
+props_indent = " " * (indent + 4)   # Properties: is 4 spaces deeper
+value_indent = " " * (indent + 6)   # Property values are 6 spaces deeper
+```
+
+**Controls that do NOT support AccessibleLabel** (adding it causes compile errors):
+- `HtmlViewer`
+- `ModernText`
+- `Text` (classic label)
+- `FluentV8/Label`
+- The outer `CanvasComponent` wrapper of a component instance
 
 ---
 
