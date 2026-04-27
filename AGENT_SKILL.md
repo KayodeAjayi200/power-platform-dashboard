@@ -3,6 +3,7 @@
 > **Instructions for AI agents.**  
 > Users reach this file by pasting the contents of `SETUP_PROMPT.txt` into your chat.  
 > Follow every step in order. Run PowerShell commands using your tool-execution capability.  
+> **Never blindly reinstall or overwrite something that is already working** — each step includes check-first logic; respect it.  
 > Ask the user **only** before opening browser windows for authentication — run everything else automatically.
 
 ---
@@ -15,22 +16,24 @@ A WinForms GUI dashboard that lets non-developers manage Power Platform solution
 
 ## Prerequisites check
 
-Run this first to see what is already installed:
+Run this first to inventory what is already on the machine. **Read the output and note what is missing before proceeding — each install step skips anything already present.**
 
 ```powershell
 @{
   PowerShell  = $PSVersionTable.PSVersion.ToString()
   Node        = (node --version 2>$null)
   DotNet      = (dotnet --version 2>$null)
+  DotNetSDKs  = (dotnet --list-sdks 2>$null)
   Git         = (git --version 2>$null)
   WinGet      = (winget --version 2>$null)
   PAC         = (pac --version 2>$null)
   AzCLI       = (az --version 2>$null | Select-Object -First 1)
   GH          = (gh --version 2>$null | Select-Object -First 1)
+  M365        = (m365 --version 2>$null)
+  DotNetTools = (dotnet tool list -g 2>$null)
+  NpmGlobal   = (npm list -g --depth=0 2>$null)
 } | Format-List
 ```
-
-Install anything missing using the steps below.
 
 ---
 
@@ -44,56 +47,78 @@ Install anything missing using the steps below.
 
 ## Step 1 — Install core tools
 
-Run each block. Skip any that are already installed (check output from prerequisites check).
+> **Each block checks first — it will only install a tool if it is missing or not working. Existing installations are always preserved.**
 
-### PowerShell 7
 ```powershell
-winget install --id Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
-```
+# PowerShell 7
+if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    Write-Host "✅ PowerShell 7 already installed: $(pwsh --version)"
+} else {
+    winget install --id Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Node.js 20 LTS
-```powershell
-winget install --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
-```
+# Node.js
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Node already installed: $(node --version)"
+} else {
+    winget install --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
+}
 
-### .NET 8 SDK
-```powershell
-winget install --id Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
-```
+# .NET 8 SDK
+if (dotnet --list-sdks 2>$null | Where-Object { $_ -match '^8\.' }) {
+    Write-Host "✅ .NET 8 SDK already installed"
+} else {
+    winget install --id Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
+}
 
-### .NET 10 SDK (required for Canvas App Authoring MCP)
-```powershell
-winget install --id Microsoft.DotNet.SDK.10 --silent --accept-package-agreements --accept-source-agreements
-```
+# .NET 10 SDK (required for Canvas App Authoring MCP)
+if (dotnet --list-sdks 2>$null | Where-Object { $_ -match '^10\.' }) {
+    Write-Host "✅ .NET 10 SDK already installed"
+} else {
+    winget install --id Microsoft.DotNet.SDK.10 --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Git
-```powershell
-winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
-```
+# Git
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Git already installed: $(git --version)"
+} else {
+    winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
+}
 
-### PAC CLI (Power Platform CLI)
-```powershell
-winget install --id Microsoft.PowerPlatformCLI --silent --accept-package-agreements --accept-source-agreements
-```
+# PAC CLI (Power Platform CLI)
+if (Get-Command pac -ErrorAction SilentlyContinue) {
+    Write-Host "✅ PAC already installed: $(pac --version)"
+} else {
+    winget install --id Microsoft.PowerPlatformCLI --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Azure CLI
-```powershell
-winget install --id Microsoft.AzureCLI --silent --accept-package-agreements --accept-source-agreements
-```
+# Azure CLI
+if (Get-Command az -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Azure CLI already installed"
+} else {
+    winget install --id Microsoft.AzureCLI --silent --accept-package-agreements --accept-source-agreements
+}
 
-### GitHub CLI
-```powershell
-winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements
-```
+# GitHub CLI
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    Write-Host "✅ GitHub CLI already installed: $(gh --version | Select-Object -First 1)"
+} else {
+    winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements
+}
 
-### m365 CLI (SharePoint & Teams)
-```powershell
-npm install -g @pnp/cli-microsoft365
-```
+# m365 CLI (SharePoint & Teams)
+if (Get-Command m365 -ErrorAction SilentlyContinue) {
+    Write-Host "✅ m365 CLI already installed"
+} else {
+    npm install -g @pnp/cli-microsoft365
+}
 
-### PnP.PowerShell (SharePoint deep operations)
-```powershell
-Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+# PnP.PowerShell (SharePoint deep operations)
+if (Get-Module -ListAvailable -Name PnP.PowerShell) {
+    Write-Host "✅ PnP.PowerShell already installed"
+} else {
+    Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+}
 ```
 
 ---
@@ -101,24 +126,36 @@ Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
 ## Step 2 — Install GitHub Copilot extension
 
 ```powershell
-gh extension install github/gh-copilot
+if (gh extension list 2>$null | Where-Object { $_ -match 'gh-copilot' }) {
+    Write-Host "✅ gh-copilot extension already installed"
+} else {
+    gh extension install github/gh-copilot
+}
 ```
 
 ---
 
 ## Step 3 — Install .NET MCP tools
 
-```powershell
-dotnet tool install -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool install -g microsoft.powerapps.canvasauthoring.mcpserver
-dotnet tool install -g microsoft.agents.copilotstudio.mcp
-```
+> Each tool is checked with `dotnet tool list -g` first. It is only installed if missing — existing installations are never overwritten.
 
-If any fail with "already installed", run with `update` instead:
 ```powershell
-dotnet tool update -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool update -g microsoft.powerapps.canvasauthoring.mcpserver
-dotnet tool update -g microsoft.agents.copilotstudio.mcp
+$installedDotnetTools = dotnet tool list -g 2>$null
+
+@(
+    "Microsoft.PowerPlatform.Dataverse.MCP",
+    "microsoft.powerapps.canvasauthoring.mcpserver",
+    "microsoft.agents.copilotstudio.mcp"
+) | ForEach-Object {
+    $tool = $_
+    # Match case-insensitively — dotnet tool names can vary in output casing
+    if ($installedDotnetTools | Where-Object { $_ -match [regex]::Escape($tool.ToLower()) }) {
+        Write-Host "✅ $tool already installed — skipping"
+    } else {
+        Write-Host "Installing $tool..."
+        dotnet tool install -g $tool
+    }
+}
 ```
 
 > **Note:** These install three tools:
@@ -164,17 +201,28 @@ After installing, configure the MCP server before first use:
 
 ## Step 4 — Install Node.js MCP packages
 
-```powershell
-npm install -g @modelcontextprotocol/server-github
-npm install -g @tiberriver256/mcp-server-azure-devops
-npm install -g @modelcontextprotocol/server-filesystem
-npm install -g @modelcontextprotocol/server-memory
-npm install -g @modelcontextprotocol/server-sequential-thinking
-npm install -g @playwright/mcp
-npm install -g @pnp/cli-microsoft365
-```
+> Checks `npm list -g` first — only installs packages that are not already present.
 
-> **Note:** Copilot Studio MCP is now a .NET tool installed in Step 3 — no npm package needed.
+```powershell
+$installedNpm = npm list -g --depth=0 2>$null
+
+@(
+    "@modelcontextprotocol/server-github",
+    "@tiberriver256/mcp-server-azure-devops",
+    "@modelcontextprotocol/server-filesystem",
+    "@modelcontextprotocol/server-memory",
+    "@modelcontextprotocol/server-sequential-thinking",
+    "@playwright/mcp"
+) | ForEach-Object {
+    $pkg = $_
+    if ($installedNpm | Where-Object { $_ -match [regex]::Escape($pkg) }) {
+        Write-Host "✅ $pkg already installed — skipping"
+    } else {
+        Write-Host "Installing $pkg..."
+        npm install -g $pkg
+    }
+}
+```
 
 ---
 
