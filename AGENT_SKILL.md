@@ -34,6 +34,14 @@ Install anything missing using the steps below.
 
 ---
 
+---
+
+## PART A — One-time machine setup
+
+> **Skip this entire section if tools are already installed** (e.g. you are onboarding a second project on a machine that already has the dashboard running). Jump straight to [PART B](#part-b--per-project-setup).
+
+---
+
 ## Step 1 — Install core tools
 
 Run each block. Skip any that are already installed (check output from prerequisites check).
@@ -170,16 +178,31 @@ npm install -g @pnp/cli-microsoft365
 
 ---
 
+---
+
+## PART B — Per-project setup
+
+> **Do these steps for every new Power Platform project** (or when setting up on a new machine for the first time after PART A).
+
+---
+
 ## Step 5 — Clone the dashboard repo
 
+> **Ask the user:** "Where would you like to store the repository? I'll create the folder if it doesn't exist."  
+> Suggest **`C:\Repositories\power-platform-dashboard`** as the default.  
+> Store their answer as `$repoPath` and use it for **all remaining steps**.
+
 ```powershell
-New-Item -ItemType Directory -Force -Path "C:\Repositories"
-gh repo clone KayodeAjayi200/power-platform-dashboard "C:\Repositories\Powerapps Stuff"
+# Replace with the path the user chose, e.g. "C:\Repositories\power-platform-dashboard"
+$repoPath = "C:\Repositories\power-platform-dashboard"
+
+New-Item -ItemType Directory -Force -Path (Split-Path $repoPath)
+gh repo clone KayodeAjayi200/power-platform-dashboard $repoPath
 ```
 
 If `gh` is not yet authenticated (step 7 handles this), clone with HTTPS:
 ```powershell
-git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git $repoPath
 ```
 
 ---
@@ -211,7 +234,7 @@ $tenantId       = "PASTE_TENANT_ID_HERE"
 $copilotStudio  = "REPLACE_WITH_YOUR_AGENT_MCP_URL"
 $canvasAppId    = "PASTE_CANVAS_APP_ID_HERE"
 $canvasEnvId    = "PASTE_CANVAS_ENVIRONMENT_ID_HERE"
-$repoPath       = "C:\Repositories\Powerapps Stuff"
+$repoPath       = $repoPath  # Set in Step 5 — the folder where you cloned the repo
 
 $mcp = @{
   mcpServers = @{
@@ -447,7 +470,7 @@ Tell the user to:
 | `No environments` in dashboard | Run `pac auth create` and sign in again |
 | Dataverse MCP URL error | URL must come from Power Automate connections page (includes `?apiName=...`) — NOT the org URL |
 | GitHub push fails | Ensure PAT has `Contents: Read/Write` and `Workflows: Read/Write` scopes |
-| Dashboard window doesn't appear | Run `pwsh -File "C:\Repositories\Powerapps Stuff\scripts\PowerPlatformDashboard.ps1"` to see error output |
+| Dashboard window doesn't appear | Run `pwsh -File "<your-repo-path>\scripts\PowerPlatformDashboard.ps1"` to see error output |
 | `npm install -g` permission error | Run terminal as the current user (not admin) |
 | Solutions tab shows nothing | Select an environment first on the Environments tab |
 | Export→Unpack→Push stuck | Operation has a 5-minute timeout; check Output tab for error details |
@@ -469,7 +492,7 @@ Once everything is installed, the user can ask their AI agent:
 | "Sync my SolutionName to GitHub" | Open dashboard → Solutions tab → select solution → set repo → click sync button |
 | "Deploy SolutionName to Test" | Open dashboard → Deploy tab → select source env and target env → deploy |
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
-| "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
+| "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "<your-repo-path>" diff HEAD~1 --stat` |
 | "Fix accessibility errors in my canvas app" | Read `skills/PowerApps-Canvas-Accessibility-Skill.md` (what to fix + WCAG standards) AND `skills/Canvas-Authoring-MCP-Skill.md` (how to push fixes via MCP) → verify MCP config → run the full accessibility fix workflow |
 | "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
 | "Build me a canvas app for expense tracking" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → use `/generate-canvas-app` — see Step 3b for setup |

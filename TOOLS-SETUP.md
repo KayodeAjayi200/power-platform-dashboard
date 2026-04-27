@@ -514,7 +514,7 @@ copilot mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-seque
 #### Install & Register
 ```powershell
 npm install -g @modelcontextprotocol/server-filesystem
-copilot mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem "C:\Repositories\Powerapps Stuff"
+copilot mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem "<your-repo-path>"
 ```
 
 ---
@@ -638,7 +638,7 @@ The GitHub Copilot CLI desktop app reads MCP server configuration from two place
 ```
 This makes the Canvas Authoring MCP available in every project.
 
-**Workspace-level** (`C:\Repositories\Powerapps Stuff\.mcp.json`):
+**Workspace-level** (`<your-repo-path>\.mcp.json`):
 ```json
 {
   "servers": {
@@ -810,7 +810,7 @@ A PowerShell script is included at `scripts/Switch-DataverseEnvironment.ps1`. It
 
 **Interactive (pick from menu):**
 ```powershell
-cd "C:\Repositories\Powerapps Stuff"
+cd "<your-repo-path>"
 .\scripts\Switch-DataverseEnvironment.ps1
 ```
 
@@ -843,7 +843,7 @@ Choose one of these options — they all do the same thing:
 
 **Option 1 — Desktop shortcut (recommended, one-time setup):**
 ```powershell
-cd "C:\Repositories\Powerapps Stuff"
+cd "<your-repo-path>"
 .\Create-Shortcut.ps1
 ```
 This creates **"Power Platform Dashboard"** on your Desktop. Double-click it any time. To pin to the taskbar: right-click the Desktop icon → "Pin to taskbar".
@@ -853,7 +853,7 @@ Open the repo folder in Explorer and double-click `Launch-Dashboard.bat`. No Pow
 
 **Option 3 — PowerShell direct:**
 ```powershell
-cd "C:\Repositories\Powerapps Stuff"
+cd "<your-repo-path>"
 .\Launch-Dashboard.ps1
 ```
 

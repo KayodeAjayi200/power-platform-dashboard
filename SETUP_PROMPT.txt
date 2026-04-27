@@ -1,15 +1,20 @@
-I've cloned the Power Platform Dashboard repository. The folder is at:
-  [REPLACE WITH YOUR FOLDER PATH — e.g. C:\Users\YourName\Documents\power-platform-dashboard]
+I want to set up the Power Platform Dashboard on this machine.
+Repository: https://github.com/KayodeAjayi200/power-platform-dashboard
 
-Please find and read the AGENT_SKILL.md file inside that folder.
+Please read AGENT_SKILL.md from that GitHub repository (fetch it directly or read from the path below if I've already cloned it).
 
-Then follow every setup step in that file using your tool-execution capability (PowerShell / bash / computer use).
+[OPTIONAL — only fill this in if you have already cloned the repo]
+Repo is already at: ___________________________________________
+
+Then follow every setup step in AGENT_SKILL.md using your tool-execution capability (PowerShell).
 
 Rules:
+- If I have NOT already cloned the repo, ask me where I'd like to store it BEFORE doing anything else (suggest C:\Repositories\power-platform-dashboard as the default)
 - Run all install commands automatically — do not ask me to run them
 - Tell me what you are doing at each step
 - Pause and ask me ONLY when a browser login window is needed (for Power Platform, GitHub, or Azure)
 - After everything is installed and configured, launch the dashboard for me
 - If you are running in the GitHub Copilot desktop app, also run Step 9 to install the agent skills
+- If I have already set up tools on this machine before (Node, PAC CLI, etc. are installed), skip PART A and go straight to PART B
 
 I am on Windows 11. Let's go.
