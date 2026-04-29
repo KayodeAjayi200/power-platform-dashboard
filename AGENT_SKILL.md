@@ -228,17 +228,22 @@ $installedNpm = npm list -g --depth=0 2>$null
 
 ---
 
-## PART B — Per-project setup
+## PART B — Dashboard setup (once per machine)
 
-> **Do these steps for every new Power Platform project** (or when setting up on a new machine for the first time after PART A).
+> **Do these steps once per machine** to install the dashboard tool itself.  
+> The dashboard is a separate tool repo — it does not store your Power Platform solutions.  
+> Solution repos are set up independently in [PART C](#part-c--per-solution-setup).
 
 ---
 
 ## Step 5 — Clone the dashboard repo
 
-> **Ask the user:** "Where would you like to store the repository? I'll create the folder if it doesn't exist."  
+> This clones the **dashboard tool** — not your Power Platform solutions.  
+> Solutions live in their own separate repos (see PART C).
+>
+> **Ask the user:** "Where would you like to store the dashboard tool? I'll create the folder if it doesn't exist."  
 > Suggest **`C:\Repositories\power-platform-dashboard`** as the default.  
-> Store their answer as `$repoPath` and use it for **all remaining steps**.
+> Store their answer as `$repoPath` and use it for **all remaining steps in PART B**.
 
 ```powershell
 # Replace with the path the user chose, e.g. "C:\Repositories\power-platform-dashboard"
@@ -269,6 +274,7 @@ Values to ask the user:
 - `COPILOT_STUDIO_MCP_URL` — from Copilot Studio → Settings → Channels → MCP Client (optional — can be added later)
 - `CANVAS_APP_ID` — App ID from the Power Apps Studio URL (after `/apps/` in the URL) — set this after opening your canvas app in Studio (optional — use `/configure-canvas-mcp` later)
 - `CANVAS_ENVIRONMENT_ID` — Environment ID from the Power Apps Studio URL (after `/e/`) — same as above (optional)
+- `SOLUTION_REPO_PATHS` — Ask: *"Do you have any Power Platform solution repos already cloned locally? If so, paste the folder paths (one per line). You can skip this and add them later."* Collect as a list of paths — these are the repos where your solutions are stored, separate from the dashboard tool. Example: `C:\Repositories\my-hr-app`, `C:\Repositories\my-expense-tracker`
 
 ```powershell
 $mcpDir = Join-Path $env:USERPROFILE ".copilot"
@@ -282,7 +288,15 @@ $tenantId       = "PASTE_TENANT_ID_HERE"
 $copilotStudio  = "REPLACE_WITH_YOUR_AGENT_MCP_URL"
 $canvasAppId    = "PASTE_CANVAS_APP_ID_HERE"
 $canvasEnvId    = "PASTE_CANVAS_ENVIRONMENT_ID_HERE"
-$repoPath       = $repoPath  # Set in Step 5 — the folder where you cloned the repo
+$repoPath       = $repoPath  # Set in Step 5 — the dashboard tool folder
+
+# All folders the filesystem MCP can read/write.
+# Starts with the dashboard tool repo; add solution repo paths here too.
+# The user can add more later by running the PART C helper script.
+$filesystemPaths = @($repoPath)
+# Add any solution repos the user provided, e.g.:
+# $filesystemPaths += "C:\Repositories\my-hr-app"
+# $filesystemPaths += "C:\Repositories\my-expense-tracker"
 
 $mcp = @{
   mcpServers = @{
@@ -350,11 +364,12 @@ $mcp = @{
         AZURE_DEVOPS_PAT      = $adoPat
       }
     }
-    # Filesystem MCP — read/write local repo files
+    # Filesystem MCP — read/write local files across the dashboard and all solution repos.
+    # $filesystemPaths is an array; each path becomes a separate positional argument.
     filesystem = @{
       type    = "local"
       command = "npx"
-      args    = @("-y", "@modelcontextprotocol/server-filesystem", $repoPath)
+      args    = @("-y", "@modelcontextprotocol/server-filesystem") + $filesystemPaths
     }
     # Memory MCP — persistent knowledge graph across sessions
     memory = @{
@@ -378,7 +393,7 @@ $mcp = @{
 } | ConvertTo-Json -Depth 10
 
 $mcp | Set-Content (Join-Path $mcpDir "mcp-config.json") -Encoding UTF8
-Write-Host "✅ MCP config written"
+Write-Host "✅ MCP config written — filesystem MCP covers: $($filesystemPaths -join ', ')"
 ```
 
 ---
@@ -506,6 +521,115 @@ Tell the user to:
    - AI provider (choose "GitHub Copilot (clipboard)" if no API key — it's free)
 3. Click **💾 Save Settings**
 4. Go back to **🌐 Environments** tab — environments should load automatically
+
+---
+
+## PART C — Per-solution setup
+
+> **Do these steps each time you want to work on a Power Platform solution.**
+>
+> The dashboard tool (PART B) only needs to be set up once per machine.  
+> Each Power Platform solution you build lives in its own **separate GitHub repo**.  
+> The dashboard's **📦 Solutions** tab has a "Set Repo" field — you point it at the relevant solution repo whenever you want to sync, deploy, or manage that solution.
+>
+> **Which scenario applies?** Ask the user:  
+> - "Are you starting a brand new solution, or do you already have a solution repo on GitHub?"
+
+---
+
+### Step C1 — Create a new solution repo (new project)
+
+> Skip to Step C2 if the solution repo already exists on GitHub.
+
+**Ask the user:**
+- "What should the GitHub repo be called?" (e.g. `my-hr-app`, `expense-tracker`)
+- "Where do you want it stored locally?" (suggest `C:\Repositories\<repo-name>`)
+- "Should it be public or private?" (default: private)
+
+```powershell
+# Replace these with the values the user provided
+$solutionRepoName  = "my-hr-app"         # Name for the new GitHub repo
+$solutionLocalPath = "C:\Repositories\my-hr-app"  # Local folder to clone into
+$visibility        = "private"            # "private" or "public"
+
+# Create the repo on GitHub and clone it locally
+gh repo create $solutionRepoName --$visibility --clone --gitignore "VisualStudio"
+Move-Item -Path $solutionRepoName -Destination $solutionLocalPath -Force
+Set-Location $solutionLocalPath
+
+Write-Host "✅ Repo created and cloned to $solutionLocalPath"
+```
+
+---
+
+### Step C2 — Clone an existing solution repo
+
+> Skip to Step C3 if the repo is already cloned locally.
+
+**Ask the user:**
+- "What is the GitHub repo URL or `owner/repo` name?" (e.g. `KayodeAjayi200/my-hr-app`)
+- "Where do you want to clone it?" (suggest `C:\Repositories\<repo-name>`)
+
+```powershell
+# Replace these with the values the user provided
+$solutionRepoUrl   = "https://github.com/KayodeAjayi200/my-hr-app"
+$solutionLocalPath = "C:\Repositories\my-hr-app"
+
+# Create the parent folder if it doesn't already exist
+$parent = Split-Path $solutionLocalPath -Parent
+if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+
+# Clone the repo into the specified folder
+git clone $solutionRepoUrl $solutionLocalPath
+
+Write-Host "✅ Repo cloned to $solutionLocalPath"
+```
+
+---
+
+### Step C3 — Add the solution repo to the filesystem MCP
+
+> The filesystem MCP controls which folders the AI can read and write.  
+> Adding the solution repo path lets Copilot see both the dashboard and your solution files.
+
+```powershell
+# The path where the solution repo was cloned (from Step C1 or C2)
+$solutionLocalPath = "C:\Repositories\my-hr-app"  # Update to the actual path
+
+$mcpConfigPath = Join-Path $env:USERPROFILE ".copilot\mcp-config.json"
+
+# Read the existing MCP config file
+$mcp = Get-Content $mcpConfigPath -Raw | ConvertFrom-Json
+
+# Get the current list of filesystem paths
+# The args array starts with "-y", "@modelcontextprotocol/server-filesystem", then paths
+$currentArgs = $mcp.mcpServers.filesystem.args
+
+# Only add the path if it isn't already listed (avoid duplicates)
+if ($currentArgs -notcontains $solutionLocalPath) {
+    # Append the new solution repo path to the args array
+    $mcp.mcpServers.filesystem.args = $currentArgs + @($solutionLocalPath)
+    
+    # Write the updated config back to disk
+    $mcp | ConvertTo-Json -Depth 10 | Set-Content $mcpConfigPath -Encoding UTF8
+    Write-Host "✅ Added $solutionLocalPath to filesystem MCP config"
+} else {
+    Write-Host "ℹ️  $solutionLocalPath is already in the filesystem MCP config — no changes needed"
+}
+```
+
+> **Restart Copilot CLI** after updating the MCP config so the change takes effect.
+
+---
+
+### Step C4 — Point the dashboard at the solution repo
+
+Tell the user:
+
+1. Open the dashboard → **📦 Solutions** tab
+2. In the **"GitHub Repo"** field, paste the local path to the solution repo (e.g. `C:\Repositories\my-hr-app`)
+3. Click **Set Repo** — the dashboard will use this path for all sync and export operations
+4. The path is saved automatically for that solution — you don't need to re-enter it each time
 
 ---
 
