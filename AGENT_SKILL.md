@@ -3,6 +3,7 @@
 > **Instructions for AI agents.**  
 > Users reach this file by pasting the contents of `SETUP_PROMPT.txt` into your chat.  
 > Follow every step in order. Run PowerShell commands using your tool-execution capability.  
+> **Never blindly reinstall or overwrite something that is already working** — each step includes check-first logic; respect it.  
 > Ask the user **only** before opening browser windows for authentication — run everything else automatically.
 
 ---
@@ -15,77 +16,109 @@ A WinForms GUI dashboard that lets non-developers manage Power Platform solution
 
 ## Prerequisites check
 
-Run this first to see what is already installed:
+Run this first to inventory what is already on the machine. **Read the output and note what is missing before proceeding — each install step skips anything already present.**
 
 ```powershell
 @{
   PowerShell  = $PSVersionTable.PSVersion.ToString()
   Node        = (node --version 2>$null)
   DotNet      = (dotnet --version 2>$null)
+  DotNetSDKs  = (dotnet --list-sdks 2>$null)
   Git         = (git --version 2>$null)
   WinGet      = (winget --version 2>$null)
   PAC         = (pac --version 2>$null)
   AzCLI       = (az --version 2>$null | Select-Object -First 1)
   GH          = (gh --version 2>$null | Select-Object -First 1)
+  M365        = (m365 --version 2>$null)
+  DotNetTools = (dotnet tool list -g 2>$null)
+  NpmGlobal   = (npm list -g --depth=0 2>$null)
 } | Format-List
 ```
 
-Install anything missing using the steps below.
+---
+
+---
+
+## PART A — One-time machine setup
+
+> **Skip this entire section if tools are already installed** (e.g. you are onboarding a second project on a machine that already has the dashboard running). Jump straight to [PART B](#part-b--per-project-setup).
 
 ---
 
 ## Step 1 — Install core tools
 
-Run each block. Skip any that are already installed (check output from prerequisites check).
+> **Each block checks first — it will only install a tool if it is missing or not working. Existing installations are always preserved.**
 
-### PowerShell 7
 ```powershell
-winget install --id Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
-```
+# PowerShell 7
+if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    Write-Host "✅ PowerShell 7 already installed: $(pwsh --version)"
+} else {
+    winget install --id Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Node.js 20 LTS
-```powershell
-winget install --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
-```
+# Node.js
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Node already installed: $(node --version)"
+} else {
+    winget install --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
+}
 
-### .NET 8 SDK
-```powershell
-winget install --id Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
-```
+# .NET 8 SDK
+if (dotnet --list-sdks 2>$null | Where-Object { $_ -match '^8\.' }) {
+    Write-Host "✅ .NET 8 SDK already installed"
+} else {
+    winget install --id Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
+}
 
-### .NET 10 SDK (required for Canvas App Authoring MCP)
-```powershell
-winget install --id Microsoft.DotNet.SDK.10 --silent --accept-package-agreements --accept-source-agreements
-```
+# .NET 10 SDK (required for Canvas App Authoring MCP)
+if (dotnet --list-sdks 2>$null | Where-Object { $_ -match '^10\.' }) {
+    Write-Host "✅ .NET 10 SDK already installed"
+} else {
+    winget install --id Microsoft.DotNet.SDK.10 --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Git
-```powershell
-winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
-```
+# Git
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Git already installed: $(git --version)"
+} else {
+    winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
+}
 
-### PAC CLI (Power Platform CLI)
-```powershell
-winget install --id Microsoft.PowerPlatformCLI --silent --accept-package-agreements --accept-source-agreements
-```
+# PAC CLI (Power Platform CLI)
+if (Get-Command pac -ErrorAction SilentlyContinue) {
+    Write-Host "✅ PAC already installed: $(pac --version)"
+} else {
+    winget install --id Microsoft.PowerPlatformCLI --silent --accept-package-agreements --accept-source-agreements
+}
 
-### Azure CLI
-```powershell
-winget install --id Microsoft.AzureCLI --silent --accept-package-agreements --accept-source-agreements
-```
+# Azure CLI
+if (Get-Command az -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Azure CLI already installed"
+} else {
+    winget install --id Microsoft.AzureCLI --silent --accept-package-agreements --accept-source-agreements
+}
 
-### GitHub CLI
-```powershell
-winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements
-```
+# GitHub CLI
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    Write-Host "✅ GitHub CLI already installed: $(gh --version | Select-Object -First 1)"
+} else {
+    winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements
+}
 
-### m365 CLI (SharePoint & Teams)
-```powershell
-npm install -g @pnp/cli-microsoft365
-```
+# m365 CLI (SharePoint & Teams)
+if (Get-Command m365 -ErrorAction SilentlyContinue) {
+    Write-Host "✅ m365 CLI already installed"
+} else {
+    npm install -g @pnp/cli-microsoft365
+}
 
-### PnP.PowerShell (SharePoint deep operations)
-```powershell
-Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+# PnP.PowerShell (SharePoint deep operations)
+if (Get-Module -ListAvailable -Name PnP.PowerShell) {
+    Write-Host "✅ PnP.PowerShell already installed"
+} else {
+    Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
+}
 ```
 
 ---
@@ -93,24 +126,36 @@ Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber
 ## Step 2 — Install GitHub Copilot extension
 
 ```powershell
-gh extension install github/gh-copilot
+if (gh extension list 2>$null | Where-Object { $_ -match 'gh-copilot' }) {
+    Write-Host "✅ gh-copilot extension already installed"
+} else {
+    gh extension install github/gh-copilot
+}
 ```
 
 ---
 
 ## Step 3 — Install .NET MCP tools
 
-```powershell
-dotnet tool install -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool install -g microsoft.powerapps.canvasauthoring.mcpserver
-dotnet tool install -g microsoft.agents.copilotstudio.mcp
-```
+> Each tool is checked with `dotnet tool list -g` first. It is only installed if missing — existing installations are never overwritten.
 
-If any fail with "already installed", run with `update` instead:
 ```powershell
-dotnet tool update -g Microsoft.PowerPlatform.Dataverse.MCP
-dotnet tool update -g microsoft.powerapps.canvasauthoring.mcpserver
-dotnet tool update -g microsoft.agents.copilotstudio.mcp
+$installedDotnetTools = dotnet tool list -g 2>$null
+
+@(
+    "Microsoft.PowerPlatform.Dataverse.MCP",
+    "microsoft.powerapps.canvasauthoring.mcpserver",
+    "microsoft.agents.copilotstudio.mcp"
+) | ForEach-Object {
+    $tool = $_
+    # Match case-insensitively — dotnet tool names can vary in output casing
+    if ($installedDotnetTools | Where-Object { $_ -match [regex]::Escape($tool.ToLower()) }) {
+        Write-Host "✅ $tool already installed — skipping"
+    } else {
+        Write-Host "Installing $tool..."
+        dotnet tool install -g $tool
+    }
+}
 ```
 
 > **Note:** These install three tools:
@@ -156,30 +201,61 @@ After installing, configure the MCP server before first use:
 
 ## Step 4 — Install Node.js MCP packages
 
+> Checks `npm list -g` first — only installs packages that are not already present.
+
 ```powershell
-npm install -g @modelcontextprotocol/server-github
-npm install -g @tiberriver256/mcp-server-azure-devops
-npm install -g @modelcontextprotocol/server-filesystem
-npm install -g @modelcontextprotocol/server-memory
-npm install -g @modelcontextprotocol/server-sequential-thinking
-npm install -g @playwright/mcp
-npm install -g @pnp/cli-microsoft365
+$installedNpm = npm list -g --depth=0 2>$null
+
+@(
+    "@modelcontextprotocol/server-github",
+    "@tiberriver256/mcp-server-azure-devops",
+    "@modelcontextprotocol/server-filesystem",
+    "@modelcontextprotocol/server-memory",
+    "@modelcontextprotocol/server-sequential-thinking",
+    "@playwright/mcp"
+) | ForEach-Object {
+    $pkg = $_
+    if ($installedNpm | Where-Object { $_ -match [regex]::Escape($pkg) }) {
+        Write-Host "✅ $pkg already installed — skipping"
+    } else {
+        Write-Host "Installing $pkg..."
+        npm install -g $pkg
+    }
+}
 ```
 
-> **Note:** Copilot Studio MCP is now a .NET tool installed in Step 3 — no npm package needed.
+---
+
+---
+
+## PART B — Dashboard setup (once per machine)
+
+> **Do these steps once per machine** to install the dashboard tool itself.  
+> The dashboard is a separate tool repo — it does not store your Power Platform solutions.  
+> Solution repos are set up independently in [PART C](#part-c--per-solution-setup).
 
 ---
 
 ## Step 5 — Clone the dashboard repo
 
+> This clones the **dashboard tool** — not your Power Platform solutions.  
+> Solutions live in their own separate repos (see PART C).
+>
+> **Ask the user:** "Where would you like to store the dashboard tool? I'll create the folder if it doesn't exist."  
+> Suggest **`C:\Repositories\power-platform-dashboard`** as the default.  
+> Store their answer as `$repoPath` and use it for **all remaining steps in PART B**.
+
 ```powershell
-New-Item -ItemType Directory -Force -Path "C:\Repositories"
-gh repo clone KayodeAjayi200/power-platform-dashboard "C:\Repositories\Powerapps Stuff"
+# Replace with the path the user chose, e.g. "C:\Repositories\power-platform-dashboard"
+$repoPath = "C:\Repositories\power-platform-dashboard"
+
+New-Item -ItemType Directory -Force -Path (Split-Path $repoPath)
+gh repo clone KayodeAjayi200/power-platform-dashboard $repoPath
 ```
 
 If `gh` is not yet authenticated (step 7 handles this), clone with HTTPS:
 ```powershell
-git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git "C:\Repositories\Powerapps Stuff"
+git clone https://github.com/KayodeAjayi200/power-platform-dashboard.git $repoPath
 ```
 
 ---
@@ -198,6 +274,7 @@ Values to ask the user:
 - `COPILOT_STUDIO_MCP_URL` — from Copilot Studio → Settings → Channels → MCP Client (optional — can be added later)
 - `CANVAS_APP_ID` — App ID from the Power Apps Studio URL (after `/apps/` in the URL) — set this after opening your canvas app in Studio (optional — use `/configure-canvas-mcp` later)
 - `CANVAS_ENVIRONMENT_ID` — Environment ID from the Power Apps Studio URL (after `/e/`) — same as above (optional)
+- `SOLUTION_REPO_PATHS` — Ask: *"Do you have any Power Platform solution repos already cloned locally? If so, paste the folder paths (one per line). You can skip this and add them later."* Collect as a list of paths — these are the repos where your solutions are stored, separate from the dashboard tool. Example: `C:\Repositories\my-hr-app`, `C:\Repositories\my-expense-tracker`
 
 ```powershell
 $mcpDir = Join-Path $env:USERPROFILE ".copilot"
@@ -211,7 +288,15 @@ $tenantId       = "PASTE_TENANT_ID_HERE"
 $copilotStudio  = "REPLACE_WITH_YOUR_AGENT_MCP_URL"
 $canvasAppId    = "PASTE_CANVAS_APP_ID_HERE"
 $canvasEnvId    = "PASTE_CANVAS_ENVIRONMENT_ID_HERE"
-$repoPath       = "C:\Repositories\Powerapps Stuff"
+$repoPath       = $repoPath  # Set in Step 5 — the dashboard tool folder
+
+# All folders the filesystem MCP can read/write.
+# Starts with the dashboard tool repo; add solution repo paths here too.
+# The user can add more later by running the PART C helper script.
+$filesystemPaths = @($repoPath)
+# Add any solution repos the user provided, e.g.:
+# $filesystemPaths += "C:\Repositories\my-hr-app"
+# $filesystemPaths += "C:\Repositories\my-expense-tracker"
 
 $mcp = @{
   mcpServers = @{
@@ -279,11 +364,12 @@ $mcp = @{
         AZURE_DEVOPS_PAT      = $adoPat
       }
     }
-    # Filesystem MCP — read/write local repo files
+    # Filesystem MCP — read/write local files across the dashboard and all solution repos.
+    # $filesystemPaths is an array; each path becomes a separate positional argument.
     filesystem = @{
       type    = "local"
       command = "npx"
-      args    = @("-y", "@modelcontextprotocol/server-filesystem", $repoPath)
+      args    = @("-y", "@modelcontextprotocol/server-filesystem") + $filesystemPaths
     }
     # Memory MCP — persistent knowledge graph across sessions
     memory = @{
@@ -307,7 +393,7 @@ $mcp = @{
 } | ConvertTo-Json -Depth 10
 
 $mcp | Set-Content (Join-Path $mcpDir "mcp-config.json") -Encoding UTF8
-Write-Host "✅ MCP config written"
+Write-Host "✅ MCP config written — filesystem MCP covers: $($filesystemPaths -join ', ')"
 ```
 
 ---
@@ -438,6 +524,115 @@ Tell the user to:
 
 ---
 
+## PART C — Per-solution setup
+
+> **Do these steps each time you want to work on a Power Platform solution.**
+>
+> The dashboard tool (PART B) only needs to be set up once per machine.  
+> Each Power Platform solution you build lives in its own **separate GitHub repo**.  
+> The dashboard's **📦 Solutions** tab has a "Set Repo" field — you point it at the relevant solution repo whenever you want to sync, deploy, or manage that solution.
+>
+> **Which scenario applies?** Ask the user:  
+> - "Are you starting a brand new solution, or do you already have a solution repo on GitHub?"
+
+---
+
+### Step C1 — Create a new solution repo (new project)
+
+> Skip to Step C2 if the solution repo already exists on GitHub.
+
+**Ask the user:**
+- "What should the GitHub repo be called?" (e.g. `my-hr-app`, `expense-tracker`)
+- "Where do you want it stored locally?" (suggest `C:\Repositories\<repo-name>`)
+- "Should it be public or private?" (default: private)
+
+```powershell
+# Replace these with the values the user provided
+$solutionRepoName  = "my-hr-app"         # Name for the new GitHub repo
+$solutionLocalPath = "C:\Repositories\my-hr-app"  # Local folder to clone into
+$visibility        = "private"            # "private" or "public"
+
+# Create the repo on GitHub and clone it locally
+gh repo create $solutionRepoName --$visibility --clone --gitignore "VisualStudio"
+Move-Item -Path $solutionRepoName -Destination $solutionLocalPath -Force
+Set-Location $solutionLocalPath
+
+Write-Host "✅ Repo created and cloned to $solutionLocalPath"
+```
+
+---
+
+### Step C2 — Clone an existing solution repo
+
+> Skip to Step C3 if the repo is already cloned locally.
+
+**Ask the user:**
+- "What is the GitHub repo URL or `owner/repo` name?" (e.g. `KayodeAjayi200/my-hr-app`)
+- "Where do you want to clone it?" (suggest `C:\Repositories\<repo-name>`)
+
+```powershell
+# Replace these with the values the user provided
+$solutionRepoUrl   = "https://github.com/KayodeAjayi200/my-hr-app"
+$solutionLocalPath = "C:\Repositories\my-hr-app"
+
+# Create the parent folder if it doesn't already exist
+$parent = Split-Path $solutionLocalPath -Parent
+if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+
+# Clone the repo into the specified folder
+git clone $solutionRepoUrl $solutionLocalPath
+
+Write-Host "✅ Repo cloned to $solutionLocalPath"
+```
+
+---
+
+### Step C3 — Add the solution repo to the filesystem MCP
+
+> The filesystem MCP controls which folders the AI can read and write.  
+> Adding the solution repo path lets Copilot see both the dashboard and your solution files.
+
+```powershell
+# The path where the solution repo was cloned (from Step C1 or C2)
+$solutionLocalPath = "C:\Repositories\my-hr-app"  # Update to the actual path
+
+$mcpConfigPath = Join-Path $env:USERPROFILE ".copilot\mcp-config.json"
+
+# Read the existing MCP config file
+$mcp = Get-Content $mcpConfigPath -Raw | ConvertFrom-Json
+
+# Get the current list of filesystem paths
+# The args array starts with "-y", "@modelcontextprotocol/server-filesystem", then paths
+$currentArgs = $mcp.mcpServers.filesystem.args
+
+# Only add the path if it isn't already listed (avoid duplicates)
+if ($currentArgs -notcontains $solutionLocalPath) {
+    # Append the new solution repo path to the args array
+    $mcp.mcpServers.filesystem.args = $currentArgs + @($solutionLocalPath)
+    
+    # Write the updated config back to disk
+    $mcp | ConvertTo-Json -Depth 10 | Set-Content $mcpConfigPath -Encoding UTF8
+    Write-Host "✅ Added $solutionLocalPath to filesystem MCP config"
+} else {
+    Write-Host "ℹ️  $solutionLocalPath is already in the filesystem MCP config — no changes needed"
+}
+```
+
+> **Restart Copilot CLI** after updating the MCP config so the change takes effect.
+
+---
+
+### Step C4 — Point the dashboard at the solution repo
+
+Tell the user:
+
+1. Open the dashboard → **📦 Solutions** tab
+2. In the **"GitHub Repo"** field, paste the local path to the solution repo (e.g. `C:\Repositories\my-hr-app`)
+3. Click **Set Repo** — the dashboard will use this path for all sync and export operations
+4. The path is saved automatically for that solution — you don't need to re-enter it each time
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -447,7 +642,7 @@ Tell the user to:
 | `No environments` in dashboard | Run `pac auth create` and sign in again |
 | Dataverse MCP URL error | URL must come from Power Automate connections page (includes `?apiName=...`) — NOT the org URL |
 | GitHub push fails | Ensure PAT has `Contents: Read/Write` and `Workflows: Read/Write` scopes |
-| Dashboard window doesn't appear | Run `pwsh -File "C:\Repositories\Powerapps Stuff\scripts\PowerPlatformDashboard.ps1"` to see error output |
+| Dashboard window doesn't appear | Run `pwsh -File "<your-repo-path>\scripts\PowerPlatformDashboard.ps1"` to see error output |
 | `npm install -g` permission error | Run terminal as the current user (not admin) |
 | Solutions tab shows nothing | Select an environment first on the Environments tab |
 | Export→Unpack→Push stuck | Operation has a 5-minute timeout; check Output tab for error details |
@@ -469,7 +664,7 @@ Once everything is installed, the user can ask their AI agent:
 | "Sync my SolutionName to GitHub" | Open dashboard → Solutions tab → select solution → set repo → click sync button |
 | "Deploy SolutionName to Test" | Open dashboard → Deploy tab → select source env and target env → deploy |
 | "Create a test environment and deploy my solution" | Open dashboard → ALM Tools tab → Disposable Environments section |
-| "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "C:\Repositories\Powerapps Stuff" diff HEAD~1 --stat` |
+| "What changed in my last solution export?" | Check git diff in the repo folder: `git -C "<your-repo-path>" diff HEAD~1 --stat` |
 | "Fix accessibility errors in my canvas app" | Read `skills/PowerApps-Canvas-Accessibility-Skill.md` (what to fix + WCAG standards) AND `skills/Canvas-Authoring-MCP-Skill.md` (how to push fixes via MCP) → verify MCP config → run the full accessibility fix workflow |
 | "Help me write a Power Fx formula" | Invoke the `powerapps-canvas` skill (in Skills panel) or read `skills/PowerApps-Canvas-Skill.md` |
 | "Build me a canvas app for expense tracking" | Read `skills/Canvas-Authoring-MCP-Skill.md` → verify MCP config → use `/generate-canvas-app` — see Step 3b for setup |
